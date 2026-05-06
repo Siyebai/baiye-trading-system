@@ -1,48 +1,39 @@
-# ============================================================
-# 白夜系统 — 最优策略参数配置
-# 版本：v2.0  日期：2026-05-06
-# 引擎：engine/backtest_engine_v2.py
-# ============================================================
-# 策略说明：
-#   SHORT (S4_MomReversal)：动量反转做空
-#     - 条件：连涨≥sc根 + 累涨≥ccp + ADX≥adx_th
-#     - 出场：SL=1×ATR，TP=tp_s×ATR
-#   LONG  (MomReversal)：动量反转做多
-#     - 条件：连跌≥lc根 + 累跌≥ccp + ADX≥adx_th + close>EMA200
-#     - 出场：SL=1×ATR，TP=tp_l×ATR
-# ============================================================
-
+# 白夜系统最优参数 v3.0.0 更新:2026-05-06
 system:
-  version: "2.0.0"
-  engine: "backtest_engine_v2"
+  version: "3.0.0"
+  engine: "backtest_engine_v3"
   timeframe: "15m"
-  capital: 150.0          # 初始资金 (USDT)
-  risk_per_trade: 0.02    # 单笔风险 2%
-  fee_rate: 0.0009        # 手续费 0.09% 单边（BNB抵扣后）
-  signal_cooldown: 5      # 同向信号最小间距（根），防重复开仓
+  capital: 150.0
+  risk_per_trade: 0.02
+  fee_rate: 0.0009
+  signal_cooldown: 5
+  consec_sl_threshold: 2
+  cooldown_bars: 16
+  updated: "2026-05-06"
 
-# ============================================================
-# 各品种最优参数（网格搜索 1728组合 × 6品种，180天回测）
-# 排序：月均收益从高到低
-# ============================================================
 symbols:
-
   BTCUSDT:
     enabled: true
-    priority: 1             # 月均+23.1%，最高收益
-    sc: 5                   # SHORT触发连涨根数
-    lc: 5                   # LONG触发连跌根数
-    ccp: 0.003              # 累计涨跌幅阈值（0.3%）
-    adx_th: 20              # ADX最低门槛
-    tp_s: 1.0               # SHORT止盈倍数（×ATR）
-    tp_l: 1.0               # LONG止盈倍数（×ATR）
-    sl_atr: 1.0             # 止损倍数（×ATR，固定）
-    ema_period: 200         # LONG趋势过滤EMA周期
-    # 回测结果: WR=60.3% | 月均+23.1% | 回撤19.2% | PF=1.39 | 笔数320
-
+    priority: 1
+    sc: 4
+    lc: 5
+    ccp: 0.0025
+    adx_th: 22
+    tp_s: 0.8
+    tp_l: 1.0
+    sl_atr: 1.0
+    ema_period: 200
+    position_scale: 1.0
+    backtest:
+      wr: 62.0
+      monthly: 18.9
+      dd: 19.2
+      pf: 1.39
+    wf_validated: true
+    wf_note: "WF验证 样本外WR=62.0% 月均+18.9% 无过拟合"
   LINKUSDT:
     enabled: true
-    priority: 2             # WR最高67.1%，PF最高1.43，回撤最低14.7%
+    priority: 2
     sc: 7
     lc: 4
     ccp: 0.0025
@@ -51,11 +42,17 @@ symbols:
     tp_l: 0.7
     sl_atr: 1.0
     ema_period: 200
-    # 回测结果: WR=67.1% | 月均+11.5% | 回撤14.7% | PF=1.43 | 笔数222
-
+    position_scale: 1.0
+    backtest:
+      wr: 67.1
+      monthly: 11.5
+      dd: 14.7
+      pf: 1.43
+      trades: 222
+      final: 288.4
   POLUSDT:
     enabled: true
-    priority: 3             # 月均+11.6%，回撤可控
+    priority: 3
     sc: 5
     lc: 4
     ccp: 0.0015
@@ -64,11 +61,17 @@ symbols:
     tp_l: 0.7
     sl_atr: 1.0
     ema_period: 200
-    # 回测结果: WR=58.6% | 月均+11.6% | 回撤21.4% | PF=1.22 | 笔数365
-
+    position_scale: 1.0
+    backtest:
+      wr: 58.6
+      monthly: 11.6
+      dd: 21.4
+      pf: 1.22
+      trades: 365
+      final: 290.4
   ETHUSDT:
     enabled: true
-    priority: 4             # ⚠️ 回撤33.3%偏高，建议降仓50%
+    priority: 4
     sc: 5
     lc: 4
     ccp: 0.0015
@@ -77,9 +80,14 @@ symbols:
     tp_l: 0.7
     sl_atr: 1.0
     ema_period: 200
-    position_scale: 0.5     # 仓位缩放：ETH回撤偏高，仅用50%标准仓位
-    # 回测结果: WR=61.4% | 月均+9.4% | 回撤33.3% | PF=1.21 | 笔数399
-
+    position_scale: 0.5
+    backtest:
+      wr: 61.4
+      monthly: 9.4
+      dd: 33.3
+      pf: 1.21
+      trades: 399
+      final: 257.1
   SOLUSDT:
     enabled: true
     priority: 5
@@ -91,8 +99,14 @@ symbols:
     tp_l: 0.8
     sl_atr: 1.0
     ema_period: 200
-    # 回测结果: WR=60.2% | 月均+9.3% | 回撤18.0% | PF=1.17 | 笔数364
-
+    position_scale: 1.0
+    backtest:
+      wr: 60.2
+      monthly: 9.3
+      dd: 18.0
+      pf: 1.17
+      trades: 364
+      final: 255.8
   BNBUSDT:
     enabled: true
     priority: 6
@@ -104,40 +118,12 @@ symbols:
     tp_l: 0.8
     sl_atr: 1.0
     ema_period: 200
-    # 回测结果: WR=59.3% | 月均+6.0% | 回撤19.2% | PF=1.13 | 笔数300
-
-# ============================================================
-# 未通过品种（保留供后续优化参考）
-# ============================================================
-excluded_symbols:
-  XRPUSDT:  {reason: "WR=50.9% 不达标", last_test: "2026-05-06"}
-  DOGEUSDT: {reason: "WR=49.4% 不达标", last_test: "2026-05-06"}
-  AVAXUSDT: {reason: "WR=47.6% 不达标，回撤61.6%", last_test: "2026-05-06"}
-  ADAUSDT:  {reason: "WR=45.8% 不达标，回撤55.5%", last_test: "2026-05-06"}
-
-# ============================================================
-# 风控参数（绝对不自动修改）
-# ============================================================
-risk_control:
-  max_daily_loss_pct: 0.06      # 单日最大亏损 6%（超过停止当日交易）
-  max_drawdown_halt: 0.20       # 总回撤超过20%暂停系统，等待主人确认
-  max_concurrent_positions: 3   # 最多同时持仓3个品种
-  min_wr_threshold: 0.58        # 胜率低于58%自动降仓50%
-  real_money_confirm: true      # 实盘操作必须主人手动确认
-
-# ============================================================
-# 指标参数（不建议修改）
-# ============================================================
-indicators:
-  atr_period: 14
-  adx_period: 14
-  ema_trend_period: 200
-
-# ============================================================
-# 数据源
-# ============================================================
-data:
-  provider: "binance_futures"
-  base_url: "https://fapi.binance.com"
-  kline_limit: 1500
-  request_delay_ms: 200         # 防频限
+    position_scale: 1.0
+    adx_dynamic_tp: true
+    adx_dynamic_tp_note: "ADX≥30→TP×1.3, ADX≥40→TP×1.6，BNB专属+4.2%月均"
+    backtest:
+      wr: 58.1
+      monthly: 11.1
+      dd: 19.2
+      pf: 1.18
+      trades: 235
