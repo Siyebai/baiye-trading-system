@@ -337,3 +337,184 @@ if __name__ == '__main__':
     print(f"  WR={s['wr']}% 月均={s['monthly_return']}% DD={s['max_dd']}% PF={s['pf']} 笔={s['trades']}")
     print(f"  FORCE_CLOSE笔数: {len(fc)}")
     print("✅ 引擎 v3.0 自测完成")
+
+
+# ═══════════════════════════════════════════════════════════════
+# v3.1 新增：趋势状态机 + LiveWarmup 实盘预热器
+# 整合说明：
+#   趋势状态机：测试结论 → 仅BTC启用SHORT约束有效(+1.3%月均)
+#               其他品种(LINK/POL/ETH/SOL/BNB)加状态约束后月均均下降，不启用
+#   LiveWarmup：实盘必须组件，用历史K线预热EMA200/ADX/ATR后逐根输出实时信号
+# ═══════════════════════════════════════════════════════════════
+
+from enum import Enum
+
+
+# ── 趋势状态机 ───────────────────────────────────────────────
+class TrendState(Enum):
+    BULL    = "BULL"
+    BEAR    = "BEAR"
+    NEUTRAL = "NEUTRAL"
+
+
+def compute_trend_state(close_arr, ema_arr, confirm_bars=3):
+    """
+    连续confirm_bars根close>EMA200 → BULL
+    连续confirm_bars根close<EMA200 → BEAR
+    否则维持上一状态（默认NEUTRAL）
+    """
+    n = len(close_arr)
+    states = [TrendState.NEUTRAL] * n
+    above = below = 0
+    cur = TrendState.NEUTRAL
+    for i in range(n):
+        if close_arr[i] > ema_arr[i]:
+            above += 1; below = 0
+        elif close_arr[i] < ema_arr[i]:
+            below += 1; above = 0
+        else:
+            above = below = 0
+        if above >= confirm_bars:   cur = TrendState.BULL
+        elif below >= confirm_bars: cur = TrendState.BEAR
+        states[i] = cur
+    return states
+
+
+def generate_signals_with_trend(df, sc=6, lc=4, ccp=0.002, adx_th=20,
+                                  cooldown=5, confirm_bars=3,
+                                  short_state_filter=True):
+    """
+    在 generate_signals 基础上加趋势状态机约束：
+      short_state_filter=True：BULL期间禁做空（测试有效品种：BTC）
+      short_state_filter=False：等价原 generate_signals（其他5个品种用此）
+
+    注：generate_signals 原版作为默认兼容入口保留不变
+    """
+    n = len(df)
+    sigs = np.zeros(n, dtype=np.int8)
+    adx  = df['adx'].values
+    cu   = df['consec_up'].values
+    cd   = df['consec_down'].values
+    cc   = df['cum_chg'].values
+    cl   = df['close'].values
+    ema  = df['ema200'].values
+
+    ls = ll = -cooldown - 1
+
+    if short_state_filter:
+        states = compute_trend_state(cl, ema, confirm_bars)
+    else:
+        states = None
+
+    for i in range(200, n):
+        if adx[i] < adx_th:
+            continue
+        # SHORT：加状态约束时，BULL期间禁止做空
+        if cu[i] >= sc and cc[i] >= ccp:
+            if short_state_filter:
+                allow_short = states[i] in (TrendState.BEAR, TrendState.NEUTRAL)
+            else:
+                allow_short = True
+            if allow_short and i - ls >= cooldown:
+                sigs[i] = -1; ls = i
+        elif cd[i] >= lc and cc[i] <= -ccp and cl[i] > ema[i]:
+            if i - ll >= cooldown:
+                sigs[i] = 1; ll = i
+    return sigs
+
+
+# ── LiveWarmup 实盘预热器 ─────────────────────────────────────
+class LiveWarmup:
+    """
+    用历史K线预热指标，之后逐根喂新K线，输出实时信号。
+
+    使用方法：
+        w = LiveWarmup('BTCUSDT', sym_cfg, sys_cfg).warmup(df_history)
+        # 每根新K线收盘后：
+        snap = w.update(new_candle_dict)
+        if snap['signal'] != 0:
+            print(snap['signal_text'], snap['entry_price'])
+    """
+
+    def __init__(self, symbol, sym_cfg=None, sys_cfg=None):
+        self.symbol  = symbol
+        self.sym_cfg = sym_cfg or {}
+        self.sys_cfg = sys_cfg or {}
+        self.buf     = None
+        self.warmed  = False
+        # BTC启用状态机，其他品种不启用
+        self.use_trend_filter = (symbol == 'BTCUSDT')
+
+    def warmup(self, df_history):
+        if len(df_history) < 220:
+            raise ValueError(
+                f"{self.symbol} 预热数据不足：{len(df_history)}根（至少220根）")
+        self.buf    = compute_indicators(df_history.copy())
+        self.warmed = True
+        row = self.buf.iloc[-1]
+        states = compute_trend_state(
+            self.buf['close'].values, self.buf['ema200'].values, 3)
+        print(f"[{self.symbol}] 预热完成 {len(df_history)}根 | "
+              f"趋势:{states[-1].value} | EMA200:{row['ema200']:.4f} | "
+              f"ATR:{row['atr']:.4f} | ADX:{row['adx']:.1f}")
+        return self
+
+    def update(self, candle):
+        """
+        candle: dict(open,high,low,close,vol,...) 或 pd.Series
+        返回 dict 含 signal/signal_text/trend/close/ema200/adx/atr/entry_price/sl/tp
+        """
+        if not self.warmed:
+            raise RuntimeError("请先调用 warmup(df_history)")
+
+        if isinstance(candle, dict):
+            row_df = pd.DataFrame([candle])
+        else:
+            row_df = candle.to_frame().T
+
+        # 保留最近800根防止内存膨胀
+        self.buf = pd.concat([self.buf, row_df]).tail(800).reset_index(drop=True)
+        self.buf = compute_indicators(self.buf)
+
+        sc  = self.sym_cfg
+        sig_arr = generate_signals_with_trend(
+            self.buf,
+            sc=sc.get('sc', 5),
+            lc=sc.get('lc', 4),
+            ccp=sc.get('ccp', 0.002),
+            adx_th=sc.get('adx_th', 20),
+            cooldown=self.sys_cfg.get('signal_cooldown', 5),
+            short_state_filter=self.use_trend_filter
+        )
+        sig = int(sig_arr[-2])   # 倒数第2根（已收盘的最后一根）
+
+        r       = self.buf.iloc[-1]
+        states  = compute_trend_state(
+            self.buf['close'].values, self.buf['ema200'].values, 3)
+        trend   = states[-1].value
+        atr     = float(r['atr'])
+        price   = float(r['close'])   # 下根open≈当前close，实盘用next open
+
+        # 预估SL/TP（实盘开仓时用next_open重新算，这里仅参考）
+        if sig == -1:
+            sl = price + atr
+            tp = price - sc.get('tp_s', 1.0) * atr
+        elif sig == 1:
+            sl = price - atr
+            tp = price + sc.get('tp_l', 0.8) * atr
+        else:
+            sl = tp = None
+
+        return dict(
+            symbol       = self.symbol,
+            signal       = sig,
+            signal_text  = {1: '🟢 LONG', -1: '🔴 SHORT', 0: '⚪ HOLD'}.get(sig, '⚪ HOLD'),
+            trend        = trend,
+            close        = round(price, 4),
+            ema200       = round(float(r['ema200']), 4),
+            adx          = round(float(r['adx']), 1),
+            atr          = round(atr, 4),
+            entry_price  = price,
+            sl           = round(sl, 4) if sl else None,
+            tp           = round(tp, 4) if tp else None,
+        )
