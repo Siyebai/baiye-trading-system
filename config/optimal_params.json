@@ -7,6 +7,8 @@
     "risk_per_trade": 0.02,
     "fee_rate": 0.0009,
     "signal_cooldown": 5,
+    "consec_sl_threshold": 2,
+    "cooldown_bars": 16,
     "updated": "2026-05-06"
   },
   "symbols": {
@@ -127,13 +129,14 @@
       "sl_atr": 1.0,
       "ema_period": 200,
       "position_scale": 1.0,
+      "adx_dynamic_tp": true,
+      "adx_dynamic_tp_note": "ADX≥30→TP×1.3, ADX≥40→TP×1.6，BNB专属+4.2%月均",
       "backtest": {
-        "wr": 59.3,
-        "monthly": 6.0,
+        "wr": 58.1,
+        "monthly": 11.1,
         "dd": 19.2,
-        "pf": 1.13,
-        "trades": 300,
-        "final": 212.8
+        "pf": 1.18,
+        "trades": 235
       }
     }
   },

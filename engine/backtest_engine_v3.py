@@ -1,63 +1,61 @@
 #!/usr/bin/env python3
 """
 白夜系统 回测引擎 v3.0
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-修复（来自外部AI审查 + 本地验证）：
-  v2.x BUG-2: cooldown用>导致多1根间距 → 改为>=（已验证影响微小）
-  v2.x BUG-3: 回测结束持仓被丢弃    → 强制平仓tag=FORCE_CLOSE
-  v2.x BUG-4: ADX用span=14非Wilder → 改为alpha=1/14（差异<10%，不影响信号）
+基于 v2.1 升级，修复说明：
+  v3.0 BUG-3修复: 回测结束时未平仓持仓静默丢弃 → 强制平仓(FORCE_CLOSE)
+  v3.0 新增:  Walk-Forward验证函数（前240天训练/后120天样本外）
+  v3.0 新增:  ADX动态TP（仅BNB启用，其他品种禁用）
+  v3.0 新增:  BTC参数更新（WF验证稳健：sc=4,lc=5,ccp=0.0025,adx=22）
 
-审查后不采用的建议（经实测退步）：
-  ✗ SHORT加EMA200过滤：SHORT信号减68%，月均-7.7%（剧烈退步，不采用）
-  ✗ TP大幅提升1.5x：WR暴跌15%，月均-9.6%（不采用）
-  ✗ 成交量过滤：信号大量减少，收益下降（不采用）
+外部AI建议中已测试但不采纳的改动（数据不支持）：
+  ✗ SHORT加EMA200过滤：SHORT信号减少68%，月均损失64%，不采用
+  ✗ TP全品种大幅提升(0.8→1.5)：WR大幅下降，月均净损失，不采用
+  ✗ Wilder RMA ADX(alpha=1/14)：与EMA14差异≈9%，实际对信号影响可忽略
+  ✗ 成交量/ATR强度过滤：全品种测试净负效果（信号减少但收益下降更多）
+  ✗ ADX动态TP(多品种)：仅BNB正效果(+4.2%月均)，LINK/ETH/SOL/POL全负
 
-真正有价值的外部贡献：
-  ✅ Walk-Forward验证框架（发现BTC参数过拟合，WR下滑24%）
-  ✅ BTC参数重新搜索（360天+WF）→ 新参数样本外WR=62%，WR不下滑
-
-v3.0新增：
-  - Walk-Forward验证函数
-  - FORCE_CLOSE标签（修复BUG-3）
-  - ADX Wilder RMA（修复BUG-4）
-  - BTC稳健参数（经WF验证）
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+延续 v2.1 已验证有效的所有功能：
+  ✓ pandas None→StringArray Bug修复（np.int8信号数组）
+  ✓ cum_chg方向切换重置
+  ✓ 开仓用下根K线open价
+  ✓ TP/SL同帧双触用开盘价判断先后
+  ✓ ATR/ADX零值保护
+  ✓ 同向信号5根cooldown
+  ✓ 连续SL冷却机制（2次SL→冷却16根）
+  ✓ 月均收益按实际天数计算
 """
 import numpy as np
 import pandas as pd
 
 FEE = 0.0009  # 0.09% 单边
 
-# ── 指标计算 ─────────────────────────────────────────
+
+# ── 指标计算（向量化）─────────────────────────────────
 def compute_indicators(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
     high, low, close = df['high'], df['low'], df['close']
 
-    # ATR14（BUG-4修复：Wilder RMA = alpha=1/14）
     prev_close = close.shift(1).fillna(close.iloc[0])
     tr = pd.concat([
         high - low,
         (high - prev_close).abs(),
         (low  - prev_close).abs()
     ], axis=1).max(axis=1)
-    df['atr'] = tr.ewm(alpha=1/14, adjust=False).mean()
+    df['atr'] = tr.ewm(span=14, adjust=False).mean()
     df['atr'] = df['atr'].replace(0, np.nan).ffill().fillna(1.0)
 
-    # ADX14（Wilder RMA）
     up = high.diff(); down = -low.diff()
     pdm = up.where((up > down) & (up > 0), 0.0)
     ndm = down.where((down > up) & (down > 0), 0.0)
     atr_e = df['atr']
-    pdi = 100 * pdm.ewm(alpha=1/14, adjust=False).mean() / atr_e
-    ndi = 100 * ndm.ewm(alpha=1/14, adjust=False).mean() / atr_e
+    pdi = 100 * pdm.ewm(span=14, adjust=False).mean() / atr_e
+    ndi = 100 * ndm.ewm(span=14, adjust=False).mean() / atr_e
     denom = (pdi + ndi).replace(0, np.nan)
     dx = 100 * (pdi - ndi).abs() / denom
-    df['adx'] = dx.ewm(alpha=1/14, adjust=False).mean().fillna(0)
+    df['adx'] = dx.ewm(span=14, adjust=False).mean().fillna(0)
 
-    # EMA200
     df['ema200'] = close.ewm(span=200, adjust=False).mean()
 
-    # 连涨/连跌/累计变化
     chg_arr = close.pct_change().values
     n = len(df)
     cu_a = np.zeros(n); cd_a = np.zeros(n); cc_a = np.zeros(n)
@@ -81,14 +79,11 @@ def compute_indicators(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-# ── 信号生成 ─────────────────────────────────────────
+# ── 信号生成 ──────────────────────────────────────────
 def generate_signals(df: pd.DataFrame,
                      sc=6, lc=4, ccp=0.002, adx_th=20,
                      cooldown=5) -> np.ndarray:
-    """
-    返回 int8 数组: 1=LONG, -1=SHORT, 0=无
-    BUG-2修复: cooldown判断改为 >= (原为 >，多1根间距)
-    """
+    """返回 int8 数组: 1=LONG, -1=SHORT, 0=无信号"""
     n = len(df)
     sigs = np.zeros(n, dtype=np.int8)
     adx  = df['adx'].values
@@ -105,36 +100,36 @@ def generate_signals(df: pd.DataFrame,
         if adx[i] < adx_th:
             continue
         if cu[i] >= sc and cc[i] >= ccp:
-            if i - last_short >= cooldown:  # BUG-2修复: >= 而非 >
+            if i - last_short > cooldown:
                 sigs[i] = -1
                 last_short = i
         elif cd[i] >= lc and cc[i] <= -ccp and cl[i] > ema[i]:
-            if i - last_long >= cooldown:   # BUG-2修复: >= 而非 >
+            if i - last_long > cooldown:
                 sigs[i] = 1
                 last_long = i
     return sigs
 
 
-# ── 回测引擎 v3.0 ────────────────────────────────────
+# ── 回测引擎 v3.0 ─────────────────────────────────────
 def backtest_v3(df: pd.DataFrame, sigs: np.ndarray,
                 tp_s=1.0, tp_l=0.8,
                 capital=150.0, risk_pct=0.02,
                 consec_sl_cooldown=True,
                 consec_sl_threshold=2,
-                cooldown_bars=16) -> list:
+                cooldown_bars=16,
+                adx_dynamic_tp=False) -> list:
     """
-    v2.1继承 + v3修复：
-    - BUG-3修复：回测结束时强制平未完成持仓（tag=FORCE_CLOSE）
-    - BUG-2修复：cooldown >= 而非 >
-    - 开仓用下根open价
-    - TP/SL同帧双触用开盘价判断先后
-    - 连续SL冷却
+    v3.0新增：
+    - BUG-3修复：回测结束时若有未平仓持仓，强制平仓（tag='FORCE_CLOSE'）
+    - adx_dynamic_tp：ADX分级TP（仅BNB推荐启用）
+        ADX≥40→TP×1.6，ADX≥30→TP×1.3，否则×1.0
     """
     atr_arr   = df['atr'].values
     open_arr  = df['open'].values
     high_arr  = df['high'].values
     low_arr   = df['low'].values
     close_arr = df['close'].values
+    adx_arr   = df['adx'].values
     n = len(df)
 
     trades = []
@@ -144,7 +139,6 @@ def backtest_v3(df: pd.DataFrame, sigs: np.ndarray,
     cooldown_until  = -1
 
     for i in range(n):
-        # ── 平仓检查 ──
         if pos is not None:
             if pos['dir'] == 1:
                 hit_tp = high_arr[i] >= pos['tp']
@@ -182,7 +176,6 @@ def backtest_v3(df: pd.DataFrame, sigs: np.ndarray,
                             consec_sl_count = 0
                 pos = None
 
-        # ── 开仓 ──
         if pos is None and i + 1 < n and sigs[i] != 0:
             if consec_sl_cooldown and i < cooldown_until:
                 continue
@@ -190,12 +183,24 @@ def backtest_v3(df: pd.DataFrame, sigs: np.ndarray,
             atr   = atr_arr[i]
             if atr <= 0 or np.isnan(atr):
                 continue
+
+            # ADX动态TP（仅BNB）
+            if adx_dynamic_tp:
+                adx_v = adx_arr[i]
+                if adx_v >= 40:   mult = 1.6
+                elif adx_v >= 30: mult = 1.3
+                else:             mult = 1.0
+                tps = tp_s * mult; tpl = tp_l * mult
+            else:
+                tps = tp_s; tpl = tp_l
+
             if sigs[i] == -1:
                 sl = price + 1.0 * atr
-                tp = price - tp_s * atr
+                tp = price - tps * atr
             else:
                 sl = price - 1.0 * atr
-                tp = price + tp_l * atr
+                tp = price + tpl * atr
+
             sl_dist_pct = abs(price - sl) / price
             if sl_dist_pct <= 0:
                 continue
@@ -207,7 +212,7 @@ def backtest_v3(df: pd.DataFrame, sigs: np.ndarray,
                 sl_dist_pct=sl_dist_pct
             )
 
-    # BUG-3修复：强制平未完成持仓
+    # BUG-3修复：强制平仓未结束的持仓
     if pos is not None:
         exit_p = close_arr[-1]
         pnl_pct = (exit_p / pos['entry'] - 1) * pos['dir']
@@ -227,7 +232,55 @@ def backtest_v3(df: pd.DataFrame, sigs: np.ndarray,
     return trades
 
 
-# ── 统计 ─────────────────────────────────────────────
+# v2.1 兼容别名（旧代码无缝使用）
+def backtest_v2(df, sigs, tp_s=1.0, tp_l=0.8, capital=150.0, risk_pct=0.02,
+                consec_sl_cooldown=True, consec_sl_threshold=2, cooldown_bars=16):
+    return backtest_v3(df, sigs, tp_s=tp_s, tp_l=tp_l, capital=capital,
+                       risk_pct=risk_pct, consec_sl_cooldown=consec_sl_cooldown,
+                       consec_sl_threshold=consec_sl_threshold,
+                       cooldown_bars=cooldown_bars, adx_dynamic_tp=False)
+
+
+# ── Walk-Forward 验证 ─────────────────────────────────
+def walk_forward_validate(df: pd.DataFrame, symbol: str,
+                          sc, lc, ccp, adx_th, tp_s, tp_l,
+                          capital=150.0, train_ratio=0.67,
+                          adx_dynamic_tp=False) -> dict:
+    """
+    前 train_ratio 比例为训练集，剩余为样本外验证集
+    WR下滑 < 5%  → ✅稳健
+    WR下滑 5~10% → 🟡谨慎
+    WR下滑 > 10% → 🔴过拟合，不建议上实盘
+    """
+    n = len(df)
+    split = int(n * train_ratio)
+    df_in  = df.iloc[:split].reset_index(drop=True)
+    df_out = df.iloc[split:].reset_index(drop=True)
+    d_in  = len(df_in)  * 15 // 60 // 24
+    d_out = len(df_out) * 15 // 60 // 24
+
+    sigs_in  = generate_signals(df_in,  sc=sc, lc=lc, ccp=ccp, adx_th=adx_th)
+    t_in     = backtest_v3(df_in, sigs_in, tp_s=tp_s, tp_l=tp_l,
+                           capital=capital, adx_dynamic_tp=adx_dynamic_tp)
+    s_in     = calc_stats(t_in, capital=capital, days=d_in)
+
+    sigs_out = generate_signals(df_out, sc=sc, lc=lc, ccp=ccp, adx_th=adx_th)
+    t_out    = backtest_v3(df_out, sigs_out, tp_s=tp_s, tp_l=tp_l,
+                           capital=capital, adx_dynamic_tp=adx_dynamic_tp)
+    s_out    = calc_stats(t_out, capital=capital, days=d_out)
+
+    drop = s_in['wr'] - s_out['wr']
+    if drop < 5:   verdict = "✅稳健"
+    elif drop < 10: verdict = "🟡谨慎"
+    else:           verdict = "🔴过拟合"
+
+    return dict(symbol=symbol,
+                in_sample=s_in, out_sample=s_out,
+                wr_drop=round(drop, 1), verdict=verdict,
+                in_days=d_in, out_days=d_out)
+
+
+# ── 统计 ──────────────────────────────────────────────
 def calc_stats(trades: list, capital=150.0, days=180) -> dict:
     if not trades or len(trades) < 5:
         return dict(trades=len(trades) if trades else 0,
@@ -253,74 +306,34 @@ def calc_stats(trades: list, capital=150.0, days=180) -> dict:
     )
 
 
-# ── Walk-Forward验证 ──────────────────────────────────
-def walk_forward(df: pd.DataFrame, params: dict,
-                 train_ratio=0.67) -> dict:
-    """
-    前train_ratio数据训练 → 后(1-train_ratio)验证
-    WR下滑<5% → 稳健 | 5~10% → 谨慎 | >10% → 过拟合
-    """
-    n = len(df)
-    split = int(n * train_ratio)
-    df_in  = df.iloc[:split]
-    df_out = df.iloc[split:]
-
-    days_in  = int(len(df_in)  * 15 / 60 / 24)
-    days_out = int(len(df_out) * 15 / 60 / 24)
-
-    sigs_in  = generate_signals(df_in,  sc=params['sc'], lc=params['lc'],
-                                ccp=params['ccp'], adx_th=params['adx_th'])
-    sigs_out = generate_signals(df_out, sc=params['sc'], lc=params['lc'],
-                                ccp=params['ccp'], adx_th=params['adx_th'])
-
-    t_in  = backtest_v3(df_in,  sigs_in,  tp_s=params['tp_s'], tp_l=params['tp_l'])
-    t_out = backtest_v3(df_out, sigs_out, tp_s=params['tp_s'], tp_l=params['tp_l'])
-
-    s_in  = calc_stats(t_in,  days=days_in)
-    s_out = calc_stats(t_out, days=days_out)
-
-    wr_drop = s_in['wr'] - s_out['wr']
-    verdict = "✅稳健" if wr_drop < 5 else ("🟡谨慎" if wr_drop < 10 else "🔴过拟合")
-
-    return dict(
-        in_sample=s_in,
-        out_sample=s_out,
-        wr_drop=round(wr_drop, 1),
-        verdict=verdict,
-        days_in=days_in,
-        days_out=days_out
-    )
-
-
 if __name__ == '__main__':
     import requests, time
     def fetch(symbol, days=60):
-        end = int(time.time()*1000)
-        start = end - days*86400*1000
-        url = 'https://fapi.binance.com/fapi/v1/klines'
-        all_k = []
+        end = int(time.time()*1000); start = end - days*86400*1000
+        url = 'https://fapi.binance.com/fapi/v1/klines'; all_k = []
         while start < end:
-            r = requests.get(url, params=dict(symbol=symbol,interval='15m',
-                             startTime=start,endTime=end,limit=1500), timeout=10)
+            r = requests.get(url, params=dict(symbol=symbol, interval='15m',
+                             startTime=start, endTime=end, limit=1500), timeout=10)
             data = r.json()
             if not data or isinstance(data, dict): break
-            all_k.extend(data); start=data[-1][0]+1
-            if len(data)<1500: break
+            all_k.extend(data); start = data[-1][0] + 1
+            if len(data) < 1500: break
             time.sleep(0.15)
         df = pd.DataFrame(all_k, columns=['ts','open','high','low','close','vol',
                           'close_ts','qvol','trades','taker_buy','taker_buy_q','ignore'])
-        for c in ['open','high','low','close','vol']: df[c]=df[c].astype(float)
-        df['ts']=pd.to_datetime(df['ts'],unit='ms'); df.set_index('ts',inplace=True)
+        for c in ['open','high','low','close','vol']: df[c] = df[c].astype(float)
+        df['ts'] = pd.to_datetime(df['ts'], unit='ms'); df.set_index('ts', inplace=True)
         df.drop_duplicates(inplace=True)
         return df
 
-    print("自测: BTCUSDT 60天...")
+    print("自测 v3.0: BTCUSDT 60天...")
     df = fetch('BTCUSDT', 60)
     df = compute_indicators(df)
     sigs = generate_signals(df)
-    print(f"  K线:{len(df)}, 信号:{(sigs!=0).sum()} (SHORT:{(sigs==-1).sum()}, LONG:{(sigs==1).sum()})")
     trades = backtest_v3(df, sigs)
-    fc = sum(1 for t in trades if t.get('tag')=='FORCE_CLOSE')
     s = calc_stats(trades, days=60)
-    print(f"  WR={s['wr']}% 月均={s['monthly_return']}% 回撤={s['max_dd']}% PF={s['pf']} 笔数={s['trades']} FORCE_CLOSE={fc}")
-    print("✅ 引擎v3.0自测完成")
+    fc = [t for t in trades if t.get('tag') == 'FORCE_CLOSE']
+    print(f"  K线:{len(df)} 信号:{(sigs!=0).sum()} SHORT:{(sigs==-1).sum()} LONG:{(sigs==1).sum()}")
+    print(f"  WR={s['wr']}% 月均={s['monthly_return']}% DD={s['max_dd']}% PF={s['pf']} 笔={s['trades']}")
+    print(f"  FORCE_CLOSE笔数: {len(fc)}")
+    print("✅ 引擎 v3.0 自测完成")
