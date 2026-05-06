@@ -1,7 +1,7 @@
 {
   "system": {
-    "version": "2.0.0",
-    "engine": "backtest_engine_v2",
+    "version": "3.0.0",
+    "engine": "backtest_engine_v3",
     "timeframe": "15m",
     "capital": 150.0,
     "risk_per_trade": 0.02,
@@ -10,22 +10,154 @@
     "updated": "2026-05-06"
   },
   "symbols": {
-    "BTCUSDT":  {"enabled": true, "priority": 1, "sc": 5, "lc": 5, "ccp": 0.003,  "adx_th": 20, "tp_s": 1.0, "tp_l": 1.0, "sl_atr": 1.0, "ema_period": 200, "position_scale": 1.0, "backtest": {"wr": 60.3, "monthly": 23.1, "dd": 19.2, "pf": 1.39, "trades": 320, "final": 520.8}},
-    "LINKUSDT": {"enabled": true, "priority": 2, "sc": 7, "lc": 4, "ccp": 0.0025, "adx_th": 15, "tp_s": 0.8, "tp_l": 0.7, "sl_atr": 1.0, "ema_period": 200, "position_scale": 1.0, "backtest": {"wr": 67.1, "monthly": 11.5, "dd": 14.7, "pf": 1.43, "trades": 222, "final": 288.4}},
-    "POLUSDT":  {"enabled": true, "priority": 3, "sc": 5, "lc": 4, "ccp": 0.0015, "adx_th": 25, "tp_s": 1.0, "tp_l": 0.7, "sl_atr": 1.0, "ema_period": 200, "position_scale": 1.0, "backtest": {"wr": 58.6, "monthly": 11.6, "dd": 21.4, "pf": 1.22, "trades": 365, "final": 290.4}},
-    "ETHUSDT":  {"enabled": true, "priority": 4, "sc": 5, "lc": 4, "ccp": 0.0015, "adx_th": 20, "tp_s": 0.8, "tp_l": 0.7, "sl_atr": 1.0, "ema_period": 200, "position_scale": 0.5, "backtest": {"wr": 61.4, "monthly": 9.4,  "dd": 33.3, "pf": 1.21, "trades": 399, "final": 257.1}},
-    "SOLUSDT":  {"enabled": true, "priority": 5, "sc": 5, "lc": 4, "ccp": 0.0015, "adx_th": 25, "tp_s": 0.8, "tp_l": 0.8, "sl_atr": 1.0, "ema_period": 200, "position_scale": 1.0, "backtest": {"wr": 60.2, "monthly": 9.3,  "dd": 18.0, "pf": 1.17, "trades": 364, "final": 255.8}},
-    "BNBUSDT":  {"enabled": true, "priority": 6, "sc": 5, "lc": 6, "ccp": 0.0015, "adx_th": 15, "tp_s": 0.8, "tp_l": 0.8, "sl_atr": 1.0, "ema_period": 200, "position_scale": 1.0, "backtest": {"wr": 59.3, "monthly": 6.0,  "dd": 19.2, "pf": 1.13, "trades": 300, "final": 212.8}}
+    "BTCUSDT": {
+      "enabled": true,
+      "priority": 1,
+      "sc": 4,
+      "lc": 5,
+      "ccp": 0.0025,
+      "adx_th": 22,
+      "tp_s": 0.8,
+      "tp_l": 1.0,
+      "sl_atr": 1.0,
+      "ema_period": 200,
+      "position_scale": 1.0,
+      "backtest": {
+        "wr": 62.0,
+        "monthly": 18.9,
+        "dd": 19.2,
+        "pf": 1.39
+      },
+      "wf_validated": true,
+      "wf_note": "WF验证 样本外WR=62.0% 月均+18.9% 无过拟合"
+    },
+    "LINKUSDT": {
+      "enabled": true,
+      "priority": 2,
+      "sc": 7,
+      "lc": 4,
+      "ccp": 0.0025,
+      "adx_th": 15,
+      "tp_s": 0.8,
+      "tp_l": 0.7,
+      "sl_atr": 1.0,
+      "ema_period": 200,
+      "position_scale": 1.0,
+      "backtest": {
+        "wr": 67.1,
+        "monthly": 11.5,
+        "dd": 14.7,
+        "pf": 1.43,
+        "trades": 222,
+        "final": 288.4
+      }
+    },
+    "POLUSDT": {
+      "enabled": true,
+      "priority": 3,
+      "sc": 5,
+      "lc": 4,
+      "ccp": 0.0015,
+      "adx_th": 25,
+      "tp_s": 1.0,
+      "tp_l": 0.7,
+      "sl_atr": 1.0,
+      "ema_period": 200,
+      "position_scale": 1.0,
+      "backtest": {
+        "wr": 58.6,
+        "monthly": 11.6,
+        "dd": 21.4,
+        "pf": 1.22,
+        "trades": 365,
+        "final": 290.4
+      }
+    },
+    "ETHUSDT": {
+      "enabled": true,
+      "priority": 4,
+      "sc": 5,
+      "lc": 4,
+      "ccp": 0.0015,
+      "adx_th": 20,
+      "tp_s": 0.8,
+      "tp_l": 0.7,
+      "sl_atr": 1.0,
+      "ema_period": 200,
+      "position_scale": 0.5,
+      "backtest": {
+        "wr": 61.4,
+        "monthly": 9.4,
+        "dd": 33.3,
+        "pf": 1.21,
+        "trades": 399,
+        "final": 257.1
+      }
+    },
+    "SOLUSDT": {
+      "enabled": true,
+      "priority": 5,
+      "sc": 5,
+      "lc": 4,
+      "ccp": 0.0015,
+      "adx_th": 25,
+      "tp_s": 0.8,
+      "tp_l": 0.8,
+      "sl_atr": 1.0,
+      "ema_period": 200,
+      "position_scale": 1.0,
+      "backtest": {
+        "wr": 60.2,
+        "monthly": 9.3,
+        "dd": 18.0,
+        "pf": 1.17,
+        "trades": 364,
+        "final": 255.8
+      }
+    },
+    "BNBUSDT": {
+      "enabled": true,
+      "priority": 6,
+      "sc": 5,
+      "lc": 6,
+      "ccp": 0.0015,
+      "adx_th": 15,
+      "tp_s": 0.8,
+      "tp_l": 0.8,
+      "sl_atr": 1.0,
+      "ema_period": 200,
+      "position_scale": 1.0,
+      "backtest": {
+        "wr": 59.3,
+        "monthly": 6.0,
+        "dd": 19.2,
+        "pf": 1.13,
+        "trades": 300,
+        "final": 212.8
+      }
+    }
   },
   "excluded_symbols": {
-    "XRPUSDT":  {"reason": "WR=50.9% 不达标", "last_test": "2026-05-06"},
-    "DOGEUSDT": {"reason": "WR=49.4% 不达标", "last_test": "2026-05-06"},
-    "AVAXUSDT": {"reason": "WR=47.6% 不达标，回撤61.6%", "last_test": "2026-05-06"},
-    "ADAUSDT":  {"reason": "WR=45.8% 不达标，回撤55.5%", "last_test": "2026-05-06"}
+    "XRPUSDT": {
+      "reason": "WR=50.9% 不达标",
+      "last_test": "2026-05-06"
+    },
+    "DOGEUSDT": {
+      "reason": "WR=49.4% 不达标",
+      "last_test": "2026-05-06"
+    },
+    "AVAXUSDT": {
+      "reason": "WR=47.6% 不达标，回撤61.6%",
+      "last_test": "2026-05-06"
+    },
+    "ADAUSDT": {
+      "reason": "WR=45.8% 不达标，回撤55.5%",
+      "last_test": "2026-05-06"
+    }
   },
   "risk_control": {
     "max_daily_loss_pct": 0.06,
-    "max_drawdown_halt": 0.20,
+    "max_drawdown_halt": 0.2,
     "max_concurrent_positions": 3,
     "min_wr_threshold": 0.58,
     "real_money_confirm": true
