@@ -1,0 +1,62 @@
+{
+  "BTCUSDT": {
+    "wr": 65.0,
+    "monthly": 16.6,
+    "dd": 11.4,
+    "pf": 1.57,
+    "trades": 234,
+    "wf_drop": -6.0,
+    "wf_verdict": "\u2705\u7a33\u5065",
+    "wf_out_wr": 62.0
+  },
+  "LINKUSDT": {
+    "wr": 66.3,
+    "monthly": 8.2,
+    "dd": 12.3,
+    "pf": 1.4,
+    "trades": 178,
+    "wf_drop": -6.8,
+    "wf_verdict": "\u2705\u7a33\u5065",
+    "wf_out_wr": 67.5
+  },
+  "POLUSDT": {
+    "wr": 58.7,
+    "monthly": 8.1,
+    "dd": 21.5,
+    "pf": 1.23,
+    "trades": 271,
+    "wf_drop": -4.3,
+    "wf_verdict": "\u2705\u7a33\u5065",
+    "wf_out_wr": 59.8
+  },
+  "ETHUSDT": {
+    "wr": 64.7,
+    "monthly": 14.1,
+    "dd": 21.2,
+    "pf": 1.4,
+    "trades": 317,
+    "wf_drop": -12.7,
+    "wf_verdict": "\u2705\u7a33\u5065",
+    "wf_out_wr": 66.7
+  },
+  "SOLUSDT": {
+    "wr": 60.0,
+    "monthly": 6.8,
+    "dd": 16.7,
+    "pf": 1.17,
+    "trades": 280,
+    "wf_drop": -2.7,
+    "wf_verdict": "\u2705\u7a33\u5065",
+    "wf_out_wr": 60.1
+  },
+  "BNBUSDT": {
+    "wr": 58.1,
+    "monthly": 11.1,
+    "dd": 14.2,
+    "pf": 1.33,
+    "trades": 229,
+    "wf_drop": -6.5,
+    "wf_verdict": "\u2705\u7a33\u5065",
+    "wf_out_wr": 57.2
+  }
+}

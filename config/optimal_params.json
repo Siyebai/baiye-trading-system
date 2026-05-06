@@ -1,6 +1,6 @@
 {
   "system": {
-    "version": "3.0.0",
+    "version": "3.1.0",
     "engine": "backtest_engine_v3",
     "timeframe": "15m",
     "capital": 150.0,
@@ -25,13 +25,16 @@
       "ema_period": 200,
       "position_scale": 1.0,
       "backtest": {
-        "wr": 62.0,
-        "monthly": 18.9,
-        "dd": 19.2,
-        "pf": 1.39
+        "wr": 65.0,
+        "monthly": 16.6,
+        "dd": 11.4,
+        "pf": 1.57,
+        "trades": 234
       },
       "wf_validated": true,
-      "wf_note": "WF验证 样本外WR=62.0% 月均+18.9% 无过拟合"
+      "wf_note": "WF验证 样本外WR=62.0% 月均+18.9% 无过拟合",
+      "wf_out_wr": 62.0,
+      "wf_drop": -6.0
     },
     "LINKUSDT": {
       "enabled": true,
@@ -46,13 +49,15 @@
       "ema_period": 200,
       "position_scale": 1.0,
       "backtest": {
-        "wr": 67.1,
-        "monthly": 11.5,
-        "dd": 14.7,
-        "pf": 1.43,
-        "trades": 222,
-        "final": 288.4
-      }
+        "wr": 66.3,
+        "monthly": 8.2,
+        "dd": 12.3,
+        "pf": 1.4,
+        "trades": 178
+      },
+      "wf_validated": true,
+      "wf_out_wr": 67.5,
+      "wf_drop": -6.8
     },
     "POLUSDT": {
       "enabled": true,
@@ -67,13 +72,15 @@
       "ema_period": 200,
       "position_scale": 1.0,
       "backtest": {
-        "wr": 58.6,
-        "monthly": 11.6,
-        "dd": 21.4,
-        "pf": 1.22,
-        "trades": 365,
-        "final": 290.4
-      }
+        "wr": 58.7,
+        "monthly": 8.1,
+        "dd": 21.5,
+        "pf": 1.23,
+        "trades": 271
+      },
+      "wf_validated": true,
+      "wf_out_wr": 59.8,
+      "wf_drop": -4.3
     },
     "ETHUSDT": {
       "enabled": true,
@@ -88,13 +95,15 @@
       "ema_period": 200,
       "position_scale": 0.5,
       "backtest": {
-        "wr": 61.4,
-        "monthly": 9.4,
-        "dd": 33.3,
-        "pf": 1.21,
-        "trades": 399,
-        "final": 257.1
-      }
+        "wr": 64.7,
+        "monthly": 14.1,
+        "dd": 21.2,
+        "pf": 1.4,
+        "trades": 317
+      },
+      "wf_validated": true,
+      "wf_out_wr": 66.7,
+      "wf_drop": -12.7
     },
     "SOLUSDT": {
       "enabled": true,
@@ -109,13 +118,15 @@
       "ema_period": 200,
       "position_scale": 1.0,
       "backtest": {
-        "wr": 60.2,
-        "monthly": 9.3,
-        "dd": 18.0,
+        "wr": 60.0,
+        "monthly": 6.8,
+        "dd": 16.7,
         "pf": 1.17,
-        "trades": 364,
-        "final": 255.8
-      }
+        "trades": 280
+      },
+      "wf_validated": true,
+      "wf_out_wr": 60.1,
+      "wf_drop": -2.7
     },
     "BNBUSDT": {
       "enabled": true,
@@ -134,10 +145,13 @@
       "backtest": {
         "wr": 58.1,
         "monthly": 11.1,
-        "dd": 19.2,
-        "pf": 1.18,
-        "trades": 235
-      }
+        "dd": 14.2,
+        "pf": 1.33,
+        "trades": 229
+      },
+      "wf_validated": true,
+      "wf_out_wr": 57.2,
+      "wf_drop": -6.5
     }
   },
   "excluded_symbols": {
