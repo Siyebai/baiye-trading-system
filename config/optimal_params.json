@@ -1,6 +1,6 @@
 {
   "system": {
-    "version": "3.1.0",
+    "version": "3.2.0",
     "engine": "backtest_engine_v3",
     "timeframe": "15m",
     "capital": 150.0,
@@ -9,7 +9,7 @@
     "signal_cooldown": 5,
     "consec_sl_threshold": 2,
     "cooldown_bars": 16,
-    "updated": "2026-05-06"
+    "updated": "2026-05-07"
   },
   "symbols": {
     "BTCUSDT": {
@@ -17,7 +17,7 @@
       "priority": 1,
       "sc": 4,
       "lc": 5,
-      "ccp": 0.0025,
+      "ccp": 0.002,
       "adx_th": 22,
       "tp_s": 0.8,
       "tp_l": 1.0,
@@ -25,16 +25,17 @@
       "ema_period": 200,
       "position_scale": 1.0,
       "backtest": {
-        "wr": 65.0,
-        "monthly": 16.6,
+        "wr": 64.7,
+        "monthly": 18.5,
         "dd": 11.4,
         "pf": 1.57,
-        "trades": 234
+        "trades": 269
       },
       "wf_validated": true,
       "wf_note": "WF验证 样本外WR=62.0% 月均+18.9% 无过拟合",
       "wf_out_wr": 62.0,
-      "wf_drop": -6.0
+      "wf_drop": -6.0,
+      "ccp_note": "0.0025→0.002，月均+1.9%，WR-0.3%可接受"
     },
     "LINKUSDT": {
       "enabled": true,
@@ -126,7 +127,8 @@
       },
       "wf_validated": true,
       "wf_out_wr": 60.1,
-      "wf_drop": -2.7
+      "wf_drop": -2.7,
+      "adx_th_note": "adx=25保留，降至20月均-1.1%，不采用"
     },
     "BNBUSDT": {
       "enabled": true,
@@ -143,15 +145,17 @@
       "adx_dynamic_tp": true,
       "adx_dynamic_tp_note": "ADX≥30→TP×1.3, ADX≥40→TP×1.6，BNB专属+4.2%月均",
       "backtest": {
-        "wr": 58.1,
-        "monthly": 11.1,
+        "wr": 60.4,
+        "monthly": 13.1,
         "dd": 14.2,
-        "pf": 1.33,
-        "trades": 229
+        "pf": 1.38,
+        "trades": 201
       },
       "wf_validated": true,
       "wf_out_wr": 57.2,
-      "wf_drop": -6.5
+      "wf_drop": -6.5,
+      "long_disabled": true,
+      "long_disabled_note": "多WR=42.9%严重拖累，禁多仅空 WR+2.3% 月均+2.0%"
     }
   },
   "excluded_symbols": {

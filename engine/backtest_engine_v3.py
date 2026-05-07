@@ -282,27 +282,51 @@ def walk_forward_validate(df: pd.DataFrame, symbol: str,
 
 # ── 统计 ──────────────────────────────────────────────
 def calc_stats(trades: list, capital=150.0, days=180) -> dict:
+    """
+    v3.2升级：新增多空分向WR、最大连亏笔数、EV/笔、夏普比
+    """
     if not trades or len(trades) < 5:
         return dict(trades=len(trades) if trades else 0,
-                    wr=0, monthly_return=0, max_dd=0, pf=0, final_equity=capital)
+                    wr=0, monthly_return=0, max_dd=0, pf=0, final_equity=capital,
+                    long_wr=0, short_wr=0, long_n=0, short_n=0,
+                    max_consec_loss=0, ev=0, sharpe=0)
     wins   = [t for t in trades if t['win']]
     losses = [t for t in trades if not t['win']]
-    wr = len(wins) / len(trades)
+    longs  = [t for t in trades if t.get('dir', 0) == 1]
+    shorts = [t for t in trades if t.get('dir', 0) == -1]
+    wr       = len(wins) / len(trades)
+    long_wr  = sum(1 for t in longs  if t['win']) / max(len(longs),  1)
+    short_wr = sum(1 for t in shorts if t['win']) / max(len(shorts), 1)
     eq = [capital] + [t['equity'] for t in trades]
     eq_s = pd.Series(eq)
     dd = ((eq_s - eq_s.cummax()) / eq_s.cummax()).min()
     gp = sum(t['pnl'] for t in wins)
     gl = abs(sum(t['pnl'] for t in losses)) or 1e-9
-    months = days / 30.0
+    months  = days / 30.0
     monthly = (eq[-1] / capital) ** (1 / months) - 1
+    # 最大连亏
+    streak = mcl = 0
+    for t in trades:
+        streak = streak + 1 if not t['win'] else 0
+        mcl = max(mcl, streak)
+    # EV/笔 & 夏普
+    pnl_arr = np.array([t['pnl'] for t in trades])
+    sharpe  = float(pnl_arr.mean() / (pnl_arr.std() + 1e-9) * np.sqrt(252 * 4)) if len(pnl_arr) > 1 else 0
     return dict(
         trades=len(trades),
         wr=round(wr * 100, 1),
+        long_wr=round(long_wr * 100, 1),
+        short_wr=round(short_wr * 100, 1),
+        long_n=len(longs),
+        short_n=len(shorts),
         final_equity=round(eq[-1], 1),
         total_return=round((eq[-1] / capital - 1) * 100, 1),
         monthly_return=round(monthly * 100, 1),
         max_dd=round(abs(dd) * 100, 1),
-        pf=round(gp / gl, 2)
+        pf=round(gp / gl, 2),
+        ev=round(float(pnl_arr.mean()), 4),
+        sharpe=round(sharpe, 3),
+        max_consec_loss=mcl
     )
 
 
