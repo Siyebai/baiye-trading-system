@@ -17,7 +17,8 @@ engine/state/*.json
 
 # Data (large files)
 data/*_live.json
-data/*.json
+data/[!r]*.json
+data/realtime_*.json
 !data/.gitkeep
 
 # Config with secrets
@@ -30,3 +31,7 @@ config/*_active.json
 .vscode/
 *.swp
 *.swo
+
+# 允许 realtime 数据目录
+!data/realtime/
+!data/realtime/*.json
