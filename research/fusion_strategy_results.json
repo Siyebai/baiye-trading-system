@@ -1,0 +1,53 @@
+{
+  "BTCUSDT": {
+    "n": 125,
+    "wr": 59.2,
+    "m": 8.08,
+    "pf": 1.25,
+    "dd": 12.7,
+    "filter": "di_confirm",
+    "tp_s": 1.0,
+    "tp_l": 1.5
+  },
+  "ETHUSDT": null,
+  "SOLUSDT": {
+    "n": 100,
+    "wr": 60.0,
+    "m": 5.59,
+    "pf": 1.24,
+    "dd": 16.7,
+    "filter": "rsi_confirm",
+    "tp_s": 1.0,
+    "tp_l": 1.0
+  },
+  "BNBUSDT": {
+    "n": 183,
+    "wr": 43.2,
+    "m": 13.06,
+    "pf": 1.17,
+    "dd": 20.3,
+    "filter": "macd_confirm",
+    "tp_s": 2.0,
+    "tp_l": 2.0
+  },
+  "LINKUSDT": {
+    "n": 50,
+    "wr": 48.0,
+    "m": 5.0,
+    "pf": 1.35,
+    "dd": 15.3,
+    "filter": "rsi_confirm",
+    "tp_s": 2.0,
+    "tp_l": 1.5
+  },
+  "POLUSDT": {
+    "n": 35,
+    "wr": 65.7,
+    "m": 4.63,
+    "pf": 1.66,
+    "dd": 6.5,
+    "filter": "di_confirm",
+    "tp_s": 1.0,
+    "tp_l": 1.0
+  }
+}

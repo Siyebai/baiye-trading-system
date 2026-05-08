@@ -1,0 +1,132 @@
+{
+  "system": {
+    "version": "fusion_v1.0",
+    "engine": "backtest_engine_v2_fusion",
+    "timeframe": "15m",
+    "capital": 150.0,
+    "risk_pct": 0.02,
+    "fee_rate": 0.0002,
+    "fee_note": "必须用Limit单入场，否则手续费不可行",
+    "signal_cooldown": 5,
+    "updated": "2026-05-08"
+  },
+  "symbols": {
+    "BTCUSDT": {
+      "enabled": true,
+      "priority": 1,
+      "sc": 4,
+      "lc": 5,
+      "ccp": 0.002,
+      "adx_th": 22,
+      "extra_filter": "di_confirm",
+      "tp_s": 1.0,
+      "tp_l": 1.5,
+      "sl_atr": 1.0,
+      "backtest": {
+        "wr": 59.2,
+        "monthly": 8.08,
+        "dd": 12.7,
+        "pf": 1.25,
+        "trades": 125
+      },
+      "note": "DI-/DI+确认过滤，保留60%信号，提升WR"
+    },
+    "ETHUSDT": {
+      "enabled": false,
+      "note": "手续费下无可行配置，暂停"
+    },
+    "SOLUSDT": {
+      "enabled": true,
+      "priority": 2,
+      "sc": 5,
+      "lc": 4,
+      "ccp": 0.0015,
+      "adx_th": 25,
+      "extra_filter": "rsi_confirm",
+      "tp_s": 1.0,
+      "tp_l": 1.0,
+      "sl_atr": 1.0,
+      "backtest": {
+        "wr": 60.0,
+        "monthly": 5.59,
+        "dd": 16.7,
+        "pf": 1.24,
+        "trades": 100
+      },
+      "note": "RSI超买/超卖确认，精准捕捉均值回归点"
+    },
+    "BNBUSDT": {
+      "enabled": true,
+      "priority": 3,
+      "sc": 5,
+      "lc": 6,
+      "ccp": 0.0015,
+      "adx_th": 15,
+      "extra_filter": "macd_confirm",
+      "tp_s": 2.0,
+      "tp_l": 2.0,
+      "sl_atr": 1.0,
+      "backtest": {
+        "wr": 43.2,
+        "monthly": 13.06,
+        "dd": 20.3,
+        "pf": 1.17,
+        "trades": 183
+      },
+      "note": "MACD方向确认，大TP倍数，低WR但高盈亏比"
+    },
+    "LINKUSDT": {
+      "enabled": true,
+      "priority": 4,
+      "sc": 7,
+      "lc": 4,
+      "ccp": 0.0025,
+      "adx_th": 15,
+      "extra_filter": "rsi_confirm",
+      "tp_s": 2.0,
+      "tp_l": 1.5,
+      "sl_atr": 1.0,
+      "backtest": {
+        "wr": 48.0,
+        "monthly": 5.0,
+        "dd": 15.3,
+        "pf": 1.35,
+        "trades": 50
+      },
+      "note": "RSI确认+高TP倍数，覆盖手续费"
+    },
+    "POLUSDT": {
+      "enabled": true,
+      "priority": 5,
+      "sc": 5,
+      "lc": 4,
+      "ccp": 0.0015,
+      "adx_th": 25,
+      "extra_filter": "di_confirm",
+      "tp_s": 1.0,
+      "tp_l": 1.0,
+      "sl_atr": 1.0,
+      "backtest": {
+        "wr": 65.7,
+        "monthly": 4.63,
+        "dd": 6.5,
+        "pf": 1.66,
+        "trades": 35
+      },
+      "note": "DI确认，胜率最高65.7%，回撤极低"
+    }
+  },
+  "portfolio": {
+    "total_monthly_est": 36.36,
+    "monthly_pct_est": 24.2,
+    "active_symbols": 5,
+    "fee_requirement": "必须使用Limit单，确保Maker费0.02%",
+    "capital_allocation": {
+      "BTCUSDT": 0.25,
+      "SOLUSDT": 0.2,
+      "BNBUSDT": 0.25,
+      "LINKUSDT": 0.2,
+      "POLUSDT": 0.1
+    }
+  }
+}
