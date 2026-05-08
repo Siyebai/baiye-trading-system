@@ -1,0 +1,68 @@
+{
+  "BTCUSDT": {
+    "config": "TP1.0 SL1.0",
+    "tp": 1.0,
+    "sl": 1.0,
+    "trades": 2695,
+    "wr": 54.2,
+    "monthly": -25.0,
+    "pf": -0.04,
+    "dd": 100.0,
+    "equity": 0.0
+  },
+  "ETHUSDT": {
+    "config": "TP1.0 SL1.0",
+    "tp": 1.0,
+    "sl": 1.0,
+    "trades": 2602,
+    "wr": 53.1,
+    "monthly": -25.0,
+    "pf": 0.2,
+    "dd": 100.0,
+    "equity": 0.0
+  },
+  "SOLUSDT": {
+    "config": "TP1.0 SL1.0",
+    "tp": 1.0,
+    "sl": 1.0,
+    "trades": 2628,
+    "wr": 53.7,
+    "monthly": -25.0,
+    "pf": 0.36,
+    "dd": 100.0,
+    "equity": 0.0
+  },
+  "BNBUSDT": {
+    "config": "TP1.0 SL1.0",
+    "tp": 1.0,
+    "sl": 1.0,
+    "trades": 2555,
+    "wr": 55.9,
+    "monthly": -25.0,
+    "pf": 0.13,
+    "dd": 100.0,
+    "equity": 0.0
+  },
+  "LINKUSDT": {
+    "config": "TP1.0 SL1.0",
+    "tp": 1.0,
+    "sl": 1.0,
+    "trades": 2784,
+    "wr": 51.1,
+    "monthly": -25.0,
+    "pf": 0.43,
+    "dd": 100.0,
+    "equity": 0.0
+  },
+  "POLUSDT": {
+    "config": "TP1.0 SL1.0",
+    "tp": 1.0,
+    "sl": 1.0,
+    "trades": 2699,
+    "wr": 54.6,
+    "monthly": -25.0,
+    "pf": 0.4,
+    "dd": 100.0,
+    "equity": 0.0
+  }
+}
