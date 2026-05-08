@@ -22,6 +22,8 @@ import tempfile
 import subprocess
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
+from logging.handlers import RotatingFileHandler
+import logging as _logging
 
 sys.path.insert(0, str(Path(__file__).parent))
 from signal_engine_v4 import generate_signal_v4, calc_atr
@@ -56,17 +58,18 @@ signal.signal(signal.SIGTERM, _handle_exit)
 signal.signal(signal.SIGINT,  _handle_exit)
 
 # ── 日志 [FIX-4] ─────────────────────────────────────
+# 日志轮转初始化（5MB × 3备份）
+_fh = RotatingFileHandler(LOG_FILE, maxBytes=5*1024*1024, backupCount=2, encoding='utf-8')
+_fh.setFormatter(_logging.Formatter('%(message)s'))
+_rl = _logging.getLogger('paper_engine')
+_rl.addHandler(_fh)
+_rl.setLevel(_logging.INFO)
+
 def _log(msg: str):
     ts = datetime.now(tz=CST).strftime("%Y-%m-%d %H:%M:%S CST")
     line = f"[{ts}] {msg}"
     print(line, flush=True)
-    try:
-        with open(LOG_FILE, "a", encoding="utf-8") as f:
-            f.write(line + "\n")
-            f.flush()
-            os.fsync(f.fileno())
-    except Exception:
-        pass
+    _rl.info(line)  # RotatingFileHandler自动轮转
 
 # ── 单例锁 [FIX-1] ────────────────────────────────────
 def acquire_lock() -> bool:

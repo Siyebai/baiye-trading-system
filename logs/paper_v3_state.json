@@ -1,6 +1,20 @@
 {
-  "equity": 150.0,
+  "equity": 146.3752113666902,
   "positions": {},
-  "trades": [],
-  "scan_count": 244
+  "trades": [
+    {
+      "sym": "BTCUSDT",
+      "direction": "SHORT",
+      "entry": 79748.58,
+      "exit": 79901.74907334412,
+      "reason": "SL",
+      "pnl": -3.6248,
+      "equity": 146.3752,
+      "open_ts": "2026-05-08T08:15:20.319819+00:00",
+      "close_ts": "2026-05-08T08:47:43.176245+00:00",
+      "fee": 0.6248,
+      "notional": 1561.97
+    }
+  ],
+  "scan_count": 436
 }

@@ -9,6 +9,8 @@
 import json, time, requests, numpy as np, pandas as pd, ta, warnings
 from pathlib import Path
 from datetime import datetime, timezone
+from logging.handlers import RotatingFileHandler
+import logging
 
 warnings.filterwarnings("ignore")
 
@@ -24,6 +26,13 @@ STATE_FILE    = Path("logs/paper_v3_state.json")
 TRADES_FILE   = Path("paper_trades_v3.json")
 
 LOG_FILE.parent.mkdir(exist_ok=True)
+
+# ── 日志轮转配置（防止日志无限增长）────────────────────────────────
+_log_handler = RotatingFileHandler(LOG_FILE, maxBytes=5*1024*1024, backupCount=2, encoding='utf-8')
+_log_handler.setFormatter(logging.Formatter('%(message)s'))
+_logger = logging.getLogger('paper_v3')
+_logger.addHandler(_log_handler)
+_logger.setLevel(logging.INFO)
 
 # ── 融合策略参数（来自 config/fusion_strategy_params.json 验证版）──────
 FUSION_CONFIGS = {
@@ -123,7 +132,7 @@ def log(msg):
     ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
     line = f"[{ts}] {msg}"
     print(line, flush=True)
-    with open(LOG_FILE,"a") as f: f.write(line+"\n")
+    _logger.info(line)  # 使用RotatingFileHandler自动轮转（5MB×3）
 
 def check_exits(state, prices):
     """检查持仓是否触及TP/SL（用当前价格近似）"""
@@ -194,6 +203,9 @@ def main():
                 "fee": round(fee_cost,4), "notional": round(notional,2)
             }
             state["trades"].append(trade)
+            # 限制trades列表最多500条（防止内存无限增长）
+            if len(state["trades"]) > 500:
+                state["trades"] = state["trades"][-500:]
             TRADES_FILE.write_text(json.dumps(state["trades"], indent=2, default=str))
             emoji = "✅" if reason=="TP" else "❌"
             log(f"  {emoji} {sym} {trade['direction']} [{reason}] PnL={pnl:+.3f}U 名义={notional:.0f}U 费={fee_cost:.3f}U | 总资金={state['equity']:.2f}U")

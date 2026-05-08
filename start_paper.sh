@@ -38,7 +38,7 @@ if [ "$MODE" = "--once" ]; then
 else
     echo "▶ 模式: 72小时后台运行"
     echo "▶ 日志: $LOG_FILE"
-    nohup python3 "$ENGINE" >> "$LOG_FILE" 2>&1 &
+    nohup python3 "$ENGINE" 2>&1 &
     BGPID=$!
     sleep 1
     if kill -0 "$BGPID" 2>/dev/null; then

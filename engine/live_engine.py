@@ -10,6 +10,7 @@
 import asyncio
 import json
 import logging
+from logging.handlers import RotatingFileHandler
 import signal
 import sys
 import time
@@ -35,14 +36,16 @@ LOG_PATH     = BASE_DIR / "logs" / "live_engine.log"
 LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
 STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(name)s] %(message)s",
-    handlers=[
-        logging.StreamHandler(),
-        logging.FileHandler(LOG_PATH, encoding="utf-8"),
-    ]
-)
+# 日志轮转：单文件最大5MB，保留2个备份
+_root_logger = logging.getLogger()
+_root_logger.setLevel(logging.INFO)
+_fmt = logging.Formatter("%(asctime)s [%(name)s] %(message)s")
+_fh = RotatingFileHandler(LOG_PATH, maxBytes=5*1024*1024, backupCount=2, encoding='utf-8')
+_fh.setFormatter(_fmt)
+_sh = logging.StreamHandler()
+_sh.setFormatter(_fmt)
+_root_logger.addHandler(_fh)
+_root_logger.addHandler(_sh)
 logger = logging.getLogger("live_engine")
 
 # ── API密钥（从TOOLS.md读取）─────────────────────
