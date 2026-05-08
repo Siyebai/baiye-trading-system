@@ -23,6 +23,7 @@ data/realtime_*.json
 
 # Config with secrets
 config/*_active.json
+config/api_keys.json
 *.secret
 .env
 
