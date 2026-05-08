@@ -42,7 +42,7 @@ _last_signal_bar: dict = {}
 FUSION_CONFIGS = {
     # v2.1验证参数，全郦过WF检验
     "BTCUSDT":  dict(sc=4, lc=5, ccp=0.002,  adx_th=22, filt="di_confirm",   tp_s=0.8, tp_l=0.8, long_disabled=False),
-    "SOLUSDT":  dict(sc=5, lc=4, ccp=0.0015, adx_th=30, filt="rsi_confirm",  tp_s=0.8, tp_l=0.8, long_disabled=False),  # v2.2: adx_th 25->30 (fix Q1 loss)
+    "SOLUSDT":  dict(sc=5, lc=4, ccp=0.0015, adx_th=25, filt="rsi_confirm",  tp_s=0.8, tp_l=0.8, long_disabled=False),
     "BNBUSDT":  dict(sc=5, lc=6, ccp=0.0015, adx_th=15, filt="macd_confirm", tp_s=0.8, tp_l=0.8, long_disabled=True),
     "LINKUSDT": dict(sc=7, lc=4, ccp=0.0025, adx_th=15, filt="rsi_confirm",  tp_s=0.8, tp_l=0.7, long_disabled=False),
     "ETHUSDT":  dict(sc=5, lc=4, ccp=0.0015, adx_th=20, filt="di_confirm",   tp_s=0.8, tp_l=0.7, long_disabled=False),
@@ -140,31 +140,23 @@ def log(msg):
     print(line, flush=True)
     _logger.info(line)  # 使用RotatingFileHandler自动轮转（5MB×3）
 
-def check_exits(state, prices, kline_high_low=None):
-    """检查持仓是否触及TP/SL
-    优先用K线high/low（更准确），回退到当前价格
-    kline_high_low: {sym: (high, low)} 最新已完成K线的高低点
-    """
+def check_exits(state, prices):
+    """检查持仓是否触及TP/SL（用当前价格近似）"""
     to_close = []
     for sym, pos in list(state["positions"].items()):
         price = prices.get(sym)
         if not price: continue
         direction = pos["direction"]
         tp = pos["tp"]; sl = pos["sl"]
-        # 用K线高低点判断（如果有）
-        if kline_high_low and sym in kline_high_low:
-            bar_high, bar_low = kline_high_low[sym]
-        else:
-            bar_high = bar_low = price
-        if direction==1:  # LONG
-            if bar_high >= tp:
+        if direction==1:
+            if price>=tp:
                 to_close.append((sym,"TP",tp))
-            elif bar_low <= sl:
+            elif price<=sl:
                 to_close.append((sym,"SL",sl))
-        else:  # SHORT
-            if bar_low <= tp:
+        else:
+            if price<=tp:
                 to_close.append((sym,"TP",tp))
-            elif bar_high >= sl:
+            elif price>=sl:
                 to_close.append((sym,"SL",sl))
     return to_close
 
