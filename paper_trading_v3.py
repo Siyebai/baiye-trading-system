@@ -34,13 +34,19 @@ _logger = logging.getLogger('paper_v3')
 _logger.addHandler(_log_handler)
 _logger.setLevel(logging.INFO)
 
+# ── K线bar去重（防止同一根K线60秒重复触发信号）──────────────────────
+# key: sym -> open_time of last triggered bar (timestamp ms)
+_last_signal_bar: dict = {}
+
 # ── 融合策略参数（来自 config/fusion_strategy_params.json 验证版）──────
 FUSION_CONFIGS = {
-    "BTCUSDT":  dict(sc=4, lc=5, ccp=0.002,  adx_th=22, filt="di_confirm",   tp_s=1.0, tp_l=1.5),
-    "SOLUSDT":  dict(sc=5, lc=4, ccp=0.0015, adx_th=25, filt="rsi_confirm",  tp_s=1.0, tp_l=1.0),
-    "BNBUSDT":  dict(sc=5, lc=6, ccp=0.0015, adx_th=15, filt="macd_confirm", tp_s=2.0, tp_l=2.0),
-    "LINKUSDT": dict(sc=7, lc=4, ccp=0.0025, adx_th=15, filt="rsi_confirm",  tp_s=2.0, tp_l=1.5),
-    "POLUSDT":  dict(sc=5, lc=4, ccp=0.0015, adx_th=25, filt="di_confirm",   tp_s=1.0, tp_l=1.0),
+    # v2.1验证参数，全郦过WF检验
+    "BTCUSDT":  dict(sc=4, lc=5, ccp=0.002,  adx_th=22, filt="di_confirm",   tp_s=0.8, tp_l=0.8, long_disabled=False),
+    "SOLUSDT":  dict(sc=5, lc=4, ccp=0.0015, adx_th=25, filt="rsi_confirm",  tp_s=0.8, tp_l=0.8, long_disabled=False),
+    "BNBUSDT":  dict(sc=5, lc=6, ccp=0.0015, adx_th=15, filt="macd_confirm", tp_s=0.8, tp_l=0.8, long_disabled=True),
+    "LINKUSDT": dict(sc=7, lc=4, ccp=0.0025, adx_th=15, filt="rsi_confirm",  tp_s=0.8, tp_l=0.7, long_disabled=False),
+    "ETHUSDT":  dict(sc=5, lc=4, ccp=0.0015, adx_th=20, filt="di_confirm",   tp_s=0.8, tp_l=0.7, long_disabled=False),
+    "POLUSDT":  dict(sc=5, lc=4, ccp=0.0015, adx_th=25, filt="di_confirm",   tp_s=1.0, tp_l=0.7, long_disabled=True),
 }
 SYMBOLS = list(FUSION_CONFIGS.keys())
 
@@ -116,7 +122,7 @@ def gen_signal(df, cfg):
         filter_short=filter_long=True
 
     if base_short and filter_short: return -1
-    if base_long  and filter_long:  return  1
+    if base_long  and filter_long and not cfg.get("long_disabled", False): return  1
     return 0
 
 # ── 仓位管理 ────────────────────────────────────────────────────────────
@@ -225,6 +231,15 @@ def main():
                     continue
 
                 if sig == 0: continue
+
+                # ── bar级去重：同一根K线只开一次仓 ──
+                try:
+                    bar_open_ts = str(df.index[-2])  # 已完成K线的开盘时间，字符串就够
+                except:
+                    bar_open_ts = ""
+                if _last_signal_bar.get(sym) == bar_open_ts and bar_open_ts != "":
+                    continue  # 已在这根K线开过仓，跳过
+                _last_signal_bar[sym] = bar_open_ts
 
                 cfg = FUSION_CONFIGS[sym]
                 price = prices.get(sym, df["close"].iloc[-1])
