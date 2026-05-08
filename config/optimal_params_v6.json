@@ -1,0 +1,312 @@
+{
+  "system": {
+    "version": "3.2.0",
+    "engine": "backtest_engine_v3",
+    "timeframe": "15m",
+    "capital": 150.0,
+    "risk_per_trade": 0.02,
+    "fee_rate": 0.0009,
+    "signal_cooldown": 5,
+    "consec_sl_threshold": 2,
+    "cooldown_bars": 16,
+    "updated": "2026-05-07"
+  },
+  "symbols": {
+    "BTCUSDT": {
+      "enabled": true,
+      "priority": 1,
+      "sc": 4,
+      "lc": 5,
+      "ccp": 0.002,
+      "adx_th": 22,
+      "tp_s": 0.8,
+      "tp_l": 1.0,
+      "sl_atr": 1.0,
+      "ema_period": 200,
+      "position_scale": 1.0,
+      "backtest": {
+        "wr": 64.7,
+        "monthly": 18.5,
+        "dd": 11.4,
+        "pf": 1.57,
+        "trades": 269
+      },
+      "wf_validated": true,
+      "wf_note": "WF\u9a8c\u8bc1 \u6837\u672c\u5916WR=62.0% \u6708\u5747+18.9% \u65e0\u8fc7\u62df\u5408",
+      "wf_out_wr": 62.0,
+      "wf_drop": -6.0,
+      "ccp_note": "0.0025\u21920.002\uff0c\u6708\u5747+1.9%\uff0cWR-0.3%\u53ef\u63a5\u53d7"
+    },
+    "LINKUSDT": {
+      "enabled": true,
+      "priority": 2,
+      "sc": 7,
+      "lc": 4,
+      "ccp": 0.0025,
+      "adx_th": 15,
+      "tp_s": 0.8,
+      "tp_l": 0.7,
+      "sl_atr": 1.0,
+      "ema_period": 200,
+      "position_scale": 1.0,
+      "backtest": {
+        "wr": 66.3,
+        "monthly": 8.2,
+        "dd": 12.3,
+        "pf": 1.4,
+        "trades": 178
+      },
+      "wf_validated": true,
+      "wf_out_wr": 67.5,
+      "wf_drop": -6.8
+    },
+    "POLUSDT": {
+      "enabled": true,
+      "priority": 3,
+      "sc": 5,
+      "lc": 4,
+      "ccp": 0.0015,
+      "adx_th": 25,
+      "tp_s": 1.0,
+      "tp_l": 0.7,
+      "sl_atr": 1.0,
+      "ema_period": 200,
+      "position_scale": 1.0,
+      "backtest": {
+        "wr": 58.7,
+        "monthly": 8.1,
+        "dd": 21.5,
+        "pf": 1.23,
+        "trades": 271
+      },
+      "wf_validated": true,
+      "wf_out_wr": 59.8,
+      "wf_drop": -4.3
+    },
+    "ETHUSDT": {
+      "enabled": true,
+      "priority": 4,
+      "sc": 5,
+      "lc": 4,
+      "ccp": 0.0015,
+      "adx_th": 20,
+      "tp_s": 0.8,
+      "tp_l": 0.7,
+      "sl_atr": 1.0,
+      "ema_period": 200,
+      "position_scale": 0.5,
+      "backtest": {
+        "wr": 64.7,
+        "monthly": 14.1,
+        "dd": 21.2,
+        "pf": 1.4,
+        "trades": 317
+      },
+      "wf_validated": true,
+      "wf_out_wr": 66.7,
+      "wf_drop": -12.7
+    },
+    "SOLUSDT": {
+      "enabled": true,
+      "priority": 5,
+      "sc": 5,
+      "lc": 4,
+      "ccp": 0.0015,
+      "adx_th": 25,
+      "tp_s": 0.8,
+      "tp_l": 0.8,
+      "sl_atr": 1.0,
+      "ema_period": 200,
+      "position_scale": 1.0,
+      "backtest": {
+        "wr": 60.0,
+        "monthly": 6.8,
+        "dd": 16.7,
+        "pf": 1.17,
+        "trades": 280
+      },
+      "wf_validated": true,
+      "wf_out_wr": 60.1,
+      "wf_drop": -2.7,
+      "adx_th_note": "adx=25\u4fdd\u7559\uff0c\u964d\u81f320\u6708\u5747-1.1%\uff0c\u4e0d\u91c7\u7528"
+    },
+    "BNBUSDT": {
+      "enabled": true,
+      "priority": 6,
+      "sc": 5,
+      "lc": 6,
+      "ccp": 0.0015,
+      "adx_th": 15,
+      "tp_s": 0.8,
+      "tp_l": 0.8,
+      "sl_atr": 1.0,
+      "ema_period": 200,
+      "position_scale": 1.0,
+      "adx_dynamic_tp": true,
+      "adx_dynamic_tp_note": "ADX\u226530\u2192TP\u00d71.3, ADX\u226540\u2192TP\u00d71.6\uff0cBNB\u4e13\u5c5e+4.2%\u6708\u5747",
+      "backtest": {
+        "wr": 60.4,
+        "monthly": 13.1,
+        "dd": 14.2,
+        "pf": 1.38,
+        "trades": 201
+      },
+      "wf_validated": true,
+      "wf_out_wr": 57.2,
+      "wf_drop": -6.5,
+      "long_disabled": true,
+      "long_disabled_note": "\u591aWR=42.9%\u4e25\u91cd\u62d6\u7d2f\uff0c\u7981\u591a\u4ec5\u7a7a WR+2.3% \u6708\u5747+2.0%"
+    }
+  },
+  "excluded_symbols": {
+    "XRPUSDT": {
+      "reason": "WR=50.9% \u4e0d\u8fbe\u6807",
+      "last_test": "2026-05-06"
+    },
+    "DOGEUSDT": {
+      "reason": "WR=49.4% \u4e0d\u8fbe\u6807",
+      "last_test": "2026-05-06"
+    },
+    "AVAXUSDT": {
+      "reason": "WR=47.6% \u4e0d\u8fbe\u6807\uff0c\u56de\u64a461.6%",
+      "last_test": "2026-05-06"
+    },
+    "ADAUSDT": {
+      "reason": "WR=45.8% \u4e0d\u8fbe\u6807\uff0c\u56de\u64a455.5%",
+      "last_test": "2026-05-06"
+    }
+  },
+  "risk_control": {
+    "max_daily_loss_pct": 0.06,
+    "max_drawdown_halt": 0.2,
+    "max_concurrent_positions": 3,
+    "min_wr_threshold": 0.58,
+    "real_money_confirm": true
+  },
+  "v6_validated_params": {
+    "3m": {
+      "BTCUSDT": {
+        "sc": 8,
+        "lc": 3,
+        "ccp": 0.002,
+        "adx_th": 12,
+        "tp_s": 0.8,
+        "tp_l": 0.7,
+        "wf_validated": true
+      },
+      "ETHUSDT": {
+        "sc": 4,
+        "lc": 3,
+        "ccp": 0.0008,
+        "adx_th": 12,
+        "tp_s": 1.0,
+        "tp_l": 1.0,
+        "wf_validated": true
+      },
+      "SOLUSDT": {
+        "sc": 4,
+        "lc": 4,
+        "ccp": 0.0015,
+        "adx_th": 22,
+        "tp_s": 0.8,
+        "tp_l": 0.7,
+        "wf_validated": true
+      },
+      "BNBUSDT": {
+        "sc": 5,
+        "lc": 3,
+        "ccp": 0.0008,
+        "adx_th": 22,
+        "tp_s": 1.0,
+        "tp_l": 0.8,
+        "long_disabled": true,
+        "wf_validated": true
+      }
+    },
+    "5m": {
+      "BTCUSDT": {
+        "sc": 4,
+        "lc": 4,
+        "ccp": 0.0015,
+        "adx_th": 18,
+        "tp_s": 0.8,
+        "tp_l": 0.8,
+        "wf_validated": true
+      },
+      "ETHUSDT": {
+        "sc": 4,
+        "lc": 6,
+        "ccp": 0.001,
+        "adx_th": 22,
+        "tp_s": 1.0,
+        "tp_l": 1.0,
+        "wf_validated": true
+      },
+      "SOLUSDT": {
+        "sc": 4,
+        "lc": 5,
+        "ccp": 0.0008,
+        "adx_th": 15,
+        "tp_s": 1.0,
+        "tp_l": 1.0,
+        "wf_validated": true
+      },
+      "BNBUSDT": {
+        "sc": 7,
+        "lc": 3,
+        "ccp": 0.0008,
+        "adx_th": 25,
+        "tp_s": 0.8,
+        "tp_l": 0.7,
+        "long_disabled": true,
+        "wf_validated": true
+      }
+    },
+    "1h": {
+      "BTCUSDT": {
+        "sc": 6,
+        "lc": 5,
+        "ccp": 0.004,
+        "adx_th": 15,
+        "tp_s": 0.8,
+        "tp_l": 0.7,
+        "wf_validated": true
+      },
+      "ETHUSDT": {
+        "sc": 3,
+        "lc": 5,
+        "ccp": 0.004,
+        "adx_th": 18,
+        "tp_s": 0.8,
+        "tp_l": 0.7,
+        "wf_validated": true
+      },
+      "SOLUSDT": {
+        "sc": 3,
+        "lc": 3,
+        "ccp": 0.005,
+        "adx_th": 25,
+        "tp_s": 1.0,
+        "tp_l": 0.8,
+        "wf_validated": true
+      },
+      "BNBUSDT": {
+        "sc": 3,
+        "lc": 2,
+        "ccp": 0.003,
+        "adx_th": 15,
+        "tp_s": 0.8,
+        "tp_l": 0.7,
+        "long_disabled": true,
+        "wf_validated": true
+      }
+    }
+  },
+  "v6_validation": {
+    "date": "2025-05-08",
+    "engine": "white_night_v6_0",
+    "signal_consistency": "100% match with original engine (464/332/182 signals)",
+    "walk_forward": "All 3m/5m/1h params pass WF validation (no overfitting)",
+    "15m_baseline": "avg WR=61.9%, avg PF=1.32, 6/6 symbols >=55%"
+  }
+}
