@@ -134,6 +134,11 @@ class RiskEngine:
 
         return True, "OK"
 
+    def get_risk_pct(self) -> float:
+        """返回当前风险比例（Fix v2.2: 补充缺失方法，原__main__和live_engine.py调用此方法会AttributeError）"""
+        risk_u = self.get_risk_amount()
+        return risk_u / max(self.state.capital, 1e-6)
+
     def get_risk_amount(self) -> float:
         """返回当前风险金额（U）"""
         if self.state.mode == "FIXED":

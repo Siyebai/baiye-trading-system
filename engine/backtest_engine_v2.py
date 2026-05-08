@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-白夜系统 回测引擎 v2.1
+白夜系统 回测引擎 v2.2
 修复记录：
   v1.x Bug1: pandas None→StringArray nan bool=True，导致每根K线开仓 [已修复]
   v1.x Bug2: cum_chg方向切换未重置，累计值跨方向叠加 [已修复]
@@ -11,6 +11,8 @@
   v2.0 改进5: 最小信号间距过滤（同向信号5根内不重复开仓）
   v2.1 新增:  连续SL冷却机制（同品种连续2次SL→冷却16根K线≈4小时）
               解决单边趋势行情中反转信号连续止损问题
+  v2.2 Bug修复: ATR/ADX从EWM(alpha=2/15)改为Wilder's(alpha=1/14)
+              与signal_engine.py/live_scanner.py保持一致，消除~21%的ATR差异
 """
 import numpy as np
 import pandas as pd
@@ -22,27 +24,51 @@ def compute_indicators(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
     high, low, close = df['high'], df['low'], df['close']
 
-    # ATR14（EMA）
+    # ATR14（Wilder's平滑，与实盘信号引擎保持一致）
+    # Fix v2.2: 从EWM(span=14, alpha=2/15)改为Wilder's(alpha=1/14)
+    # 原因: signal_engine.py和live_scanner.py均使用Wilder's; EWM alpha=0.133 vs Wilder=0.071
+    #       导致ATR值差异约20%，SL/TP距离不一致
     prev_close = close.shift(1).fillna(close.iloc[0])
     tr = pd.concat([
         high - low,
         (high - prev_close).abs(),
         (low  - prev_close).abs()
     ], axis=1).max(axis=1)
-    df['atr'] = tr.ewm(span=14, adjust=False).mean()
+    n_atr = 14
+    alpha_w = 1.0 / n_atr  # Wilder's alpha
+    atr_vals = np.zeros(len(tr))
+    tr_arr = tr.values
+    atr_vals[:n_atr] = tr_arr[:n_atr].mean()
+    for _i in range(n_atr, len(tr_arr)):
+        atr_vals[_i] = atr_vals[_i-1] * (1 - alpha_w) + tr_arr[_i] * alpha_w
+    df['atr'] = atr_vals
     # ATR安全保护
     df['atr'] = df['atr'].replace(0, np.nan).ffill().fillna(1.0)
 
-    # ADX14
-    up = high.diff(); down = -low.diff()
-    pdm = up.where((up > down) & (up > 0), 0.0)
-    ndm = down.where((down > up) & (down > 0), 0.0)
-    atr_e = df['atr']
-    pdi = 100 * pdm.ewm(span=14, adjust=False).mean() / atr_e
-    ndi = 100 * ndm.ewm(span=14, adjust=False).mean() / atr_e
-    denom = (pdi + ndi).replace(0, np.nan)
-    dx = 100 * (pdi - ndi).abs() / denom
-    df['adx'] = dx.ewm(span=14, adjust=False).mean().fillna(0)
+    # ADX14（Wilder's平滑，与实盘信号引擎保持一致）
+    # Fix v2.2: 从EWM改为Wilder's，保持回测与实盘ADX计算一致
+    up = high.diff().fillna(0).values
+    down = (-low.diff()).fillna(0).values
+    pdm_arr = np.where((up > down) & (up > 0), up, 0.0)
+    ndm_arr = np.where((down > up) & (down > 0), down, 0.0)
+    atr_e_arr = df['atr'].values
+    pdm_arr[0] = ndm_arr[0] = 0.0
+    pdi14 = np.zeros(len(atr_e_arr))
+    ndi14 = np.zeros(len(atr_e_arr))
+    pdi14[:n_atr] = pdm_arr[:n_atr].mean()
+    ndi14[:n_atr] = ndm_arr[:n_atr].mean()
+    for _i in range(n_atr, len(atr_e_arr)):
+        pdi14[_i] = pdi14[_i-1] * (1 - alpha_w) + pdm_arr[_i] * alpha_w
+        ndi14[_i] = ndi14[_i-1] * (1 - alpha_w) + ndm_arr[_i] * alpha_w
+    with np.errstate(divide='ignore', invalid='ignore'):
+        pdi = np.where(atr_e_arr > 0, 100 * pdi14 / atr_e_arr, 0.0)
+        ndi = np.where(atr_e_arr > 0, 100 * ndi14 / atr_e_arr, 0.0)
+        dx = np.where((pdi + ndi) > 0, 100 * np.abs(pdi - ndi) / (pdi + ndi), 0.0)
+    adx_vals = np.zeros(len(dx))
+    adx_vals[:n_atr] = dx[:n_atr].mean()
+    for _i in range(n_atr, len(dx)):
+        adx_vals[_i] = adx_vals[_i-1] * (1 - alpha_w) + dx[_i] * alpha_w
+    df['adx'] = adx_vals
 
     # EMA200
     df['ema200'] = close.ewm(span=200, adjust=False).mean()
@@ -266,4 +292,4 @@ if __name__ == '__main__':
     trades = backtest_v2(df, sigs)
     s = calc_stats(trades, days=60)
     print(f"  结果: WR={s['wr']}% 月均={s['monthly_return']}% 回撤={s['max_dd']}% PF={s['pf']} 笔数={s['trades']}")
-    print("✅ 引擎v2.0自测完成")
+    print("✅ 引擎v2.2自测完成")

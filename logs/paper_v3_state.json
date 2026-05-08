@@ -1,6 +1,18 @@
 {
   "equity": 150.0,
-  "positions": {},
+  "positions": {
+    "BNBUSDT": {
+      "direction": -1,
+      "entry": 641.87,
+      "tp": 640.6022353483058,
+      "sl": 643.4547058146177,
+      "tp_mult": 0.8,
+      "risk_amt": 3.0,
+      "sl_dist_pct": 0.002468889050146692,
+      "open_ts": "2026-05-08T14:45:29.177650+00:00",
+      "filter": "macd_confirm"
+    }
+  },
   "trades": [],
-  "scan_count": 28
+  "scan_count": 69
 }
