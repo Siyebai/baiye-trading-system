@@ -17,9 +17,9 @@ engine/state/*.json
 
 # Data (large files)
 data/*_live.json
-data/[!r]*.json
 data/realtime_*.json
 !data/.gitkeep
+# 不再忽略JSON数据文件，允许上传真实K线数据
 
 # Config with secrets
 config/*_active.json
