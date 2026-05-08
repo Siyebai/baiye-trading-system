@@ -125,7 +125,7 @@ def run_integration_test(data_path, state_path, capital=150.0):
             if trade_closed:
                 real_outcome, entry_p, exit_p = simulate_trade_outcome(position, bars, position_entry_idx)
                 # 计算真实PnL
-                risk_amount = risk.state.capital * risk.get_risk_pct()
+                risk_amount = risk.get_risk_amount()
                 sl_dist = abs(entry_p - position.sl_price) / entry_p if entry_p > 0 else 0.01
                 position_notional = risk_amount / sl_dist if sl_dist > 0 else 0
                 qty = position_notional / entry_p if entry_p > 0 else 0

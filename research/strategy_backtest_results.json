@@ -1,0 +1,170 @@
+{
+  "BTCUSDT": [
+    {
+      "label": "S1_VWAP_bounce",
+      "trades": 4,
+      "wr": 0.0,
+      "pnl": -12.02,
+      "equity": 137.98,
+      "avg_bars": 1.5,
+      "wins": 0,
+      "losses": 4,
+      "sym": "BTCUSDT"
+    },
+    {
+      "label": "S2_BB_squeeze",
+      "trades": 0,
+      "wr": 0,
+      "pnl": 0,
+      "equity": 150.0,
+      "sym": "BTCUSDT"
+    },
+    {
+      "label": "S3_MACD+RSI(5m)",
+      "trades": 45,
+      "wr": 60.0,
+      "pnl": 26.76,
+      "equity": 176.76,
+      "avg_bars": 2.0,
+      "wins": 27,
+      "losses": 18,
+      "sym": "BTCUSDT"
+    },
+    {
+      "label": "S4_VolMom(3m)",
+      "trades": 6,
+      "wr": 16.7,
+      "pnl": -12.03,
+      "equity": 137.97,
+      "avg_bars": 1.5,
+      "wins": 1,
+      "losses": 5,
+      "sym": "BTCUSDT"
+    },
+    {
+      "label": "S5_MultiTF\u5171\u632f",
+      "trades": 11,
+      "wr": 63.6,
+      "pnl": 8.94,
+      "equity": 158.94,
+      "avg_bars": 2.1,
+      "wins": 7,
+      "losses": 4,
+      "sym": "BTCUSDT"
+    }
+  ],
+  "ETHUSDT": [
+    {
+      "label": "S1_VWAP_bounce",
+      "trades": 5,
+      "wr": 20.0,
+      "pnl": -9.03,
+      "equity": 140.97,
+      "avg_bars": 1.8,
+      "wins": 1,
+      "losses": 4,
+      "sym": "ETHUSDT"
+    },
+    {
+      "label": "S2_BB_squeeze",
+      "trades": 1,
+      "wr": 0.0,
+      "pnl": -3.01,
+      "equity": 146.99,
+      "avg_bars": 3.0,
+      "wins": 0,
+      "losses": 1,
+      "sym": "ETHUSDT"
+    },
+    {
+      "label": "S3_MACD+RSI(5m)",
+      "trades": 43,
+      "wr": 55.8,
+      "pnl": 14.77,
+      "equity": 164.77,
+      "avg_bars": 2.3,
+      "wins": 24,
+      "losses": 19,
+      "sym": "ETHUSDT"
+    },
+    {
+      "label": "S4_VolMom(3m)",
+      "trades": 10,
+      "wr": 20.0,
+      "pnl": -18.05,
+      "equity": 131.95,
+      "avg_bars": 1.7,
+      "wins": 2,
+      "losses": 8,
+      "sym": "ETHUSDT"
+    },
+    {
+      "label": "S5_MultiTF\u5171\u632f",
+      "trades": 13,
+      "wr": 61.5,
+      "pnl": 8.93,
+      "equity": 158.93,
+      "avg_bars": 1.6,
+      "wins": 8,
+      "losses": 5,
+      "sym": "ETHUSDT"
+    }
+  ],
+  "SOLUSDT": [
+    {
+      "label": "S1_VWAP_bounce",
+      "trades": 1,
+      "wr": 100.0,
+      "pnl": 2.99,
+      "equity": 152.99,
+      "avg_bars": 1.0,
+      "wins": 1,
+      "losses": 0,
+      "sym": "SOLUSDT"
+    },
+    {
+      "label": "S2_BB_squeeze",
+      "trades": 2,
+      "wr": 100.0,
+      "pnl": 8.98,
+      "equity": 158.98,
+      "avg_bars": 2.5,
+      "wins": 2,
+      "losses": 0,
+      "sym": "SOLUSDT"
+    },
+    {
+      "label": "S3_MACD+RSI(5m)",
+      "trades": 43,
+      "wr": 58.1,
+      "pnl": 20.77,
+      "equity": 170.77,
+      "avg_bars": 2.4,
+      "wins": 25,
+      "losses": 18,
+      "sym": "SOLUSDT"
+    },
+    {
+      "label": "S4_VolMom(3m)",
+      "trades": 10,
+      "wr": 40.0,
+      "pnl": -6.05,
+      "equity": 143.95,
+      "avg_bars": 1.5,
+      "wins": 4,
+      "losses": 6,
+      "sym": "SOLUSDT"
+    },
+    {
+      "label": "S5_MultiTF\u5171\u632f",
+      "trades": 14,
+      "wr": 85.7,
+      "pnl": 29.92,
+      "equity": 179.92,
+      "avg_bars": 2.3,
+      "wins": 12,
+      "losses": 2,
+      "sym": "SOLUSDT"
+    }
+  ]
+}
