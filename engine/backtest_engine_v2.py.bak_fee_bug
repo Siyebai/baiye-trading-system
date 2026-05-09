@@ -182,11 +182,7 @@ def backtest_v2(df: pd.DataFrame, sigs: np.ndarray,
 
                 exit_p = pos['tp'] if hit_tp else pos['sl']
                 pnl_pct = (exit_p / pos['entry'] - 1) * pos['dir']
-                # v2.3 修复：手续费按名义仓位计算（notional=risk/sl_dist_pct）
-                # 旧（错误）：risk * (pnl_pct/sl_dist_pct - FEE*2)  ← fee被缩小700倍
-                # 新（正确）：notional*pnl_pct - notional*FEE*2 = risk*(pnl_pct - FEE*2)/sl_dist_pct
-                notional = pos['risk'] / pos['sl_dist_pct']
-                pnl = notional * pnl_pct - notional * FEE * 2
+                pnl = pos['risk'] * (pnl_pct / pos['sl_dist_pct'] - FEE * 2)
                 equity += pnl
                 trades.append({
                     'dir':  pos['dir'],
