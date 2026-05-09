@@ -1,0 +1,23 @@
+{
+  "positions": {
+    "SOLUSDT": {
+      "sym": "SOLUSDT",
+      "dir": "SHORT",
+      "entry": 93.87,
+      "sl": 94.3408355163263,
+      "tp": 93.61888772462598,
+      "qty": 6.371652,
+      "notional": 598.107,
+      "adx": 31.12,
+      "atr": 0.31389,
+      "open_time": "2026-05-09T08:35:31.632725+00:00",
+      "status": "open",
+      "pnl": 0
+    }
+  },
+  "equity": 150.0,
+  "last_bar": {
+    "SOLUSDT_SHORT": "2026-05-09 08:15:00+00:00"
+  },
+  "cooldown": {}
+}
