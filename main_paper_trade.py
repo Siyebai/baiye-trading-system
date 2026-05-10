@@ -315,13 +315,31 @@ def check_signal(symbol: str, df: pd.DataFrame, cfg: dict) -> dict | None:
 # ══════════════════════════════════════════════════════════════
 #  持仓退出检测
 # ══════════════════════════════════════════════════════════════
-def check_exit(pos: dict, high: float, low: float) -> tuple[str, float] | tuple[None, None]:
+def check_exit(pos: dict, high: float, low: float, open_: float = None) -> tuple[str, float] | tuple[None, None]:
+    """检查持仓是否触发止盈/止损
+    open_: 当前K线开盘价，用于双触发时判断先后（与回测引擎v2.2保持一致）
+    """
     if pos["direction"] == "做空":
-        if low  <= pos["tp"]:  return "止盈", pos["tp"]
-        if high >= pos["sl"]:  return "止损", pos["sl"]
-    else:
-        if high >= pos["tp"]:  return "止盈", pos["tp"]
-        if low  <= pos["sl"]:  return "止损", pos["sl"]
+        tp_hit = low  <= pos["tp"]
+        sl_hit = high >= pos["sl"]
+        if tp_hit and sl_hit:
+            # 双触发：用开盘价判断先后（保守=悲观处理）
+            if open_ is not None:
+                # open高于入场价 → 先上涨触SL，再下跌触TP → 止损
+                return ("止损", pos["sl"]) if open_ >= pos["entry"] else ("止盈", pos["tp"])
+            return "止损", pos["sl"]  # 无open信息时保守处理
+        if tp_hit: return "止盈",  pos["tp"]
+        if sl_hit: return "止损",  pos["sl"]
+    else:  # 做多
+        tp_hit = high >= pos["tp"]
+        sl_hit = low  <= pos["sl"]
+        if tp_hit and sl_hit:
+            if open_ is not None:
+                # open低于入场价 → 先下跌触SL → 止损
+                return ("止损", pos["sl"]) if open_ <= pos["entry"] else ("止盈", pos["tp"])
+            return "止损", pos["sl"]
+        if tp_hit: return "止盈",  pos["tp"]
+        if sl_hit: return "止损",  pos["sl"]
     return None, None
 
 
@@ -453,9 +471,10 @@ def main() -> None:
                     continue
 
                 cur_bar = df.iloc[-1]
-                high = float(cur_bar["high"])
-                low  = float(cur_bar["low"])
-                result, exit_price = check_exit(pos, high, low)
+                high  = float(cur_bar["high"])
+                low   = float(cur_bar["low"])
+                open_ = float(cur_bar["open"])
+                result, exit_price = check_exit(pos, high, low, open_)
 
                 if result:
                     qty       = pos["qty"]
