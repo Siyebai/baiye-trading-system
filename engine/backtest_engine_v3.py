@@ -214,9 +214,9 @@ def backtest_v3(df: pd.DataFrame,
             if sl_dist_pct <= 0:
                 continue
 
-            # ✅ 止盈可行性检查：TP收益 >= min_fee_cover × 手续费
+            # ✅ 止盈可行性检查：TP收益 > min_fee_cover × 手续费（严格大于）
             # fee_ratio = tp_dist_pct / (2*FEE)
-            if tp_dist_pct < min_fee_cover * 2 * FEE:
+            if tp_dist_pct <= min_fee_cover * 2 * FEE:
                 continue   # ATR太小或TP倍数不够，跳过
 
             # ✅ 名义仓位计算（含上限保护）
