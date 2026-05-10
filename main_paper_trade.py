@@ -604,13 +604,13 @@ def main() -> None:
                     cfg = CONFIGS[sym]
 
                     s_ok = (
-                        "✅SHORT" if cu >= cfg["sc"] and cc / 100 >= cfg["ccp"]
-                        else f"SHORT[cu{cu}/{cfg['sc']} cc{cc:.2f}%/{cfg['ccp']*100:.2f}%]"
+                        "✅SHORT" if cu >= cfg["sc"] and cc / 100 >= cfg["ccp"] and adx >= cfg["adx_th"]
+                        else f"SHORT[cu{cu}/{cfg['sc']} cc{cc:.2f}%/{cfg['ccp']*100:.2f}% adx{adx:.0f}/{cfg['adx_th']}]"
                     )
                     l_ok = (
                         "LONG禁" if cfg["long_disabled"]
-                        else ("✅LONG" if cd >= cfg["lc"] and cc / 100 <= -cfg["ccp"]
-                              else f"LONG[cd{cd}/{cfg['lc']} cc{cc:.2f}%/{-cfg['ccp']*100:.2f}%]")
+                        else ("✅LONG" if cd >= cfg["lc"] and cc / 100 <= -cfg["ccp"] and adx >= cfg["adx_th"]
+                              else f"LONG[cd{cd}/{cfg['lc']} cc{cc:.2f}%/{-cfg['ccp']*100:.2f}% adx{adx:.0f}/{cfg['adx_th']}]")
                     )
                     logger.info(f"  {sym:10s} ADX={adx:4.0f} | {s_ok} | {l_ok}")
 
