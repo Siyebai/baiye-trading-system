@@ -29,7 +29,7 @@ warnings.filterwarnings("ignore")
 CAPITAL        = 150.0
 RISK_PCT       = 0.02
 FEE            = 0.0002   # Maker 限价单 0.02%单边
-MAX_POSITIONS  = 5        # 最多同时5个持仓
+MAX_POSITIONS  = 6        # 最多同时5个持仓
 POLL_SECS      = 30
 TARGET_TRADES  = 100
 DAILY_LOSS_PCT = 0.06     # 日熔断: 权益6%
@@ -54,6 +54,8 @@ CONFIGS = {
     "DOTUSDT":  dict(sc=4, lc=5, ccp=0.0008, adx_th=20, tp_s=0.8, sl_atr=1.0, long_disabled=False),
     "SUIUSDT":  dict(sc=5, lc=5, ccp=0.002,  adx_th=15, tp_s=0.8, sl_atr=1.0, long_disabled=False),
     "ADAUSDT":  dict(sc=4, lc=5, ccp=0.0008, adx_th=18, tp_s=0.8, sl_atr=1.0, long_disabled=False),
+    "AVAXUSDT": dict(sc=5, lc=4, ccp=0.0008, adx_th=20, tp_s=0.8, sl_atr=1.0, long_disabled=False),
+    "STXUSDT":  dict(sc=4, lc=4, ccp=0.0008, adx_th=18, tp_s=0.8, sl_atr=1.0, long_disabled=False),
 }
 SYMBOLS = list(CONFIGS.keys())
 
@@ -300,3 +302,6 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+# PATCH: 运行时追加品种（原CONFIGS追加AVAX/STX）
+# 此补丁不影响原文件，重启时在__main__前插入

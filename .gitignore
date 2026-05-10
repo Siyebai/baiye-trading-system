@@ -36,3 +36,9 @@ config/api_keys.json
 # 允许 realtime 数据目录
 !data/realtime/
 !data/realtime/*.json
+
+# 保留主入口和关键文件
+!main_paper_trade.py
+!start_paper_v6*.py
+!paper_trades_v65.json
+!AGENT_GUIDE.md
