@@ -49,12 +49,11 @@ logger.setLevel(logging.INFO)
 CONFIGS = {
     "ETHUSDT":  dict(sc=6, lc=4, ccp=0.0008, adx_th=15, tp_s=0.8, sl_atr=1.0, long_disabled=False),
     "SOLUSDT":  dict(sc=6, lc=4, ccp=0.0008, adx_th=12, tp_s=0.8, sl_atr=1.0, long_disabled=False),
-    "LINKUSDT": dict(sc=4, lc=4, ccp=0.0008, adx_th=15, tp_s=0.8, sl_atr=1.0, long_disabled=False),
+    "LINKUSDT": dict(sc=4, lc=4, ccp=0.0008, adx_th=15, tp_s=1.2, sl_atr=1.0, long_disabled=False),  # tp升级: EV+0.508
     "ARBUSDT":  dict(sc=4, lc=4, ccp=0.0008, adx_th=18, tp_s=0.8, sl_atr=1.0, long_disabled=False),
-    "DOTUSDT":  dict(sc=4, lc=5, ccp=0.0008, adx_th=20, tp_s=0.8, sl_atr=1.0, long_disabled=False),
+    "DOTUSDT":  dict(sc=4, lc=5, ccp=0.0008, adx_th=20, tp_s=1.2, sl_atr=1.0, long_disabled=False),  # tp升级: EV+0.670
     "SUIUSDT":  dict(sc=5, lc=5, ccp=0.002,  adx_th=15, tp_s=0.8, sl_atr=1.0, long_disabled=False),
     "ADAUSDT":  dict(sc=4, lc=5, ccp=0.0008, adx_th=18, tp_s=0.8, sl_atr=1.0, long_disabled=False),
-    "AVAXUSDT": dict(sc=5, lc=4, ccp=0.0008, adx_th=20, tp_s=0.8, sl_atr=1.0, long_disabled=False),
     "STXUSDT":  dict(sc=4, lc=4, ccp=0.0008, adx_th=18, tp_s=0.8, sl_atr=1.0, long_disabled=False),
 }
 SYMBOLS = list(CONFIGS.keys())
@@ -170,7 +169,7 @@ def summary(trades):
 # ── 主循环 ───────────────────────────────────────────────────
 def main():
     logger.info("="*65)
-    logger.info("白夜纸交易 v6.5 — 高信号量优化版（7品种）")
+    logger.info("白夜纸交易 v6.5b — 混合TP优化版（8品种）")
     logger.info(f"品种: {SYMBOLS}")
     logger.info(f"FEE={FEE*100:.3f}%单边(Maker) | 资金:{CAPITAL}U | 风险:{RISK_PCT*100}%")
     logger.info(f"预期信号量: ~10笔/天 | 平均WR≥65%")

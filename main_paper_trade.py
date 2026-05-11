@@ -236,20 +236,28 @@ def compute_indicators(df: pd.DataFrame) -> pd.DataFrame:
 # ══════════════════════════════════════════════════════════════
 #  数据获取
 # ══════════════════════════════════════════════════════════════
-def fetch_klines(symbol: str, limit: int = KLINE_LIMIT) -> pd.DataFrame:
-    """从 Binance 合约 API 拉取 K 线"""
+def fetch_klines(symbol: str, limit: int = KLINE_LIMIT, retries: int = 3) -> pd.DataFrame:
+    """从 Binance 合约 API 拉取 K 线（内置重试，防网络抗抗弹性）"""
     url = "https://fapi.binance.com/fapi/v1/klines"
-    r = requests.get(
-        url,
-        params={"symbol": symbol, "interval": INTERVAL, "limit": limit},
-        timeout=10
-    )
-    r.raise_for_status()
-    cols = ["ts","open","high","low","close","vol","ct","qv","tr","tbb","tbq","ign"]
-    df = pd.DataFrame(r.json(), columns=cols)
-    for col in ["open","high","low","close"]:
-        df[col] = df[col].astype(float)
-    return df
+    last_err = None
+    for attempt in range(retries):
+        try:
+            r = requests.get(
+                url,
+                params={"symbol": symbol, "interval": INTERVAL, "limit": limit},
+                timeout=10
+            )
+            r.raise_for_status()
+            cols = ["ts","open","high","low","close","vol","ct","qv","tr","tbb","tbq","ign"]
+            df = pd.DataFrame(r.json(), columns=cols)
+            for col in ["open","high","low","close"]:
+                df[col] = df[col].astype(float)
+            return df
+        except Exception as e:
+            last_err = e
+            if attempt < retries - 1:
+                time.sleep(2 * (attempt + 1))  # 退避重试间隔: 2s, 4s
+    raise RuntimeError(f"[{symbol}] 拉取K线失败({retries}次): {last_err}")
 
 
 # ══════════════════════════════════════════════════════════════
@@ -563,8 +571,8 @@ def main() -> None:
                     qty      = risk_u / (atr_val * CONFIGS[sym]["sl_atr"]) if atr_val > 0 else 0
                     notional = qty * sig["entry"]
 
-                    # 名义值保护
-                    if notional < 0.5 or notional > state["equity"] * 0.5:
+                    # 名义值保护（合约notional可远大于权益，仅过滤极小单）
+                    if notional < 5:
                         continue
 
                     last_bar[sym]  = sig["bar_ts"]
@@ -632,6 +640,17 @@ def main() -> None:
                               else f"LONG[cd{cd}/{cfg['lc']} cc{cc:.2f}%/{-cfg['ccp']*100:.2f}% adx{adx:.0f}/{cfg['adx_th']}]")
                     )
                     logger.info(f"  {sym:10s} ADX={adx:4.0f} | {s_ok} | {l_ok}")
+
+            # 每20轮（约10分钟）输出运行统计摘要
+            if poll_count % 20 == 0:
+                elapsed_h = poll_count * POLL_SECS / 3600
+                trade_rate = total / elapsed_h if elapsed_h > 0 else 0
+                logger.info(
+                    f"╪╪╪ 周期摘要 ╪╪╪ 运行{elapsed_h:.1f}h | "
+                    f"交易速率={trade_rate:.1f}笔/h | "
+                    f"预期100笔还需={(100-total)/trade_rate:.0f}h" if trade_rate > 0 else
+                    f"╪╪╪ 周期摘要 ╪╪╪ 运行{elapsed_h:.1f}h | 等待信号..."
+                )
 
             time.sleep(POLL_SECS)
 
