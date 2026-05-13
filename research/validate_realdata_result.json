@@ -1,0 +1,77 @@
+{
+  "generated_at": "2026-05-13T14:00Z",
+  "data_source": "Binance 180天 15m K线 本地CSV",
+  "strategy": "均值回归：连涨做空/连跌做多 + ADX + EMA200过滤",
+  "key_finding": "Maker费(Limit单0.02%)比Taker费(0.09%)节约约80%手续费成本",
+  "symbols": [
+    {
+      "symbol": "BTCUSDT",
+      "n": 47,
+      "wr": 0.638,
+      "pf": 0.76,
+      "monthly_taker": -1.5,
+      "monthly_maker": 1.4,
+      "total_taker": -13.7,
+      "total_maker": 12.9
+    },
+    {
+      "symbol": "ETHUSDT",
+      "n": 113,
+      "wr": 0.531,
+      "pf": 0.53,
+      "monthly_taker": -7.4,
+      "monthly_maker": -2.0,
+      "total_taker": -66.5,
+      "total_maker": -18.2
+    },
+    {
+      "symbol": "SOLUSDT",
+      "n": 74,
+      "wr": 0.541,
+      "pf": 0.62,
+      "monthly_taker": -4.4,
+      "monthly_maker": -0.2,
+      "total_taker": -39.8,
+      "total_maker": -2.0
+    },
+    {
+      "symbol": "BNBUSDT",
+      "n": 10,
+      "wr": 0.7,
+      "pf": 1.01,
+      "monthly_taker": 0.0,
+      "monthly_maker": 0.6,
+      "total_taker": 0.1,
+      "total_maker": 5.5
+    },
+    {
+      "symbol": "LINKUSDT",
+      "n": 60,
+      "wr": 0.5,
+      "pf": 0.52,
+      "monthly_taker": -5.0,
+      "monthly_maker": -1.5,
+      "total_taker": -44.9,
+      "total_maker": -13.8
+    },
+    {
+      "symbol": "POLUSDT",
+      "n": 46,
+      "wr": 0.652,
+      "pf": 0.85,
+      "monthly_taker": -0.9,
+      "monthly_maker": 1.5,
+      "total_taker": -8.3,
+      "total_maker": 13.9
+    }
+  ],
+  "summary": {
+    "total_n": 350,
+    "avg_wr_pct": 59.4,
+    "monthly_pct_taker": -19.2,
+    "monthly_pct_maker": -0.2,
+    "verdict_taker": "FAIL - 亏损，Taker手续费吞噬全部利润",
+    "verdict_maker": "BORDERLINE - 需继续优化信号质量",
+    "action": "v7.3引擎必须用Limit单入场(Maker费)，且需针对ETHUSDT/LINKUSDT参数再优化"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "positions": {},
+  "equity": 150.0153453100089,
+  "peak_equity": 150.0153453100089,
+  "max_drawdown": 0.0,
+  "day_loss": 0.0,
+  "day_date": "2026-05-13",
+  "total_trades": 1,
+  "wins": 1,
+  "losses": 0,
+  "total_pnl": 0.015345310008901908,
+  "streak": 1,
+  "daily_stats": {
+    "2026-05-13": {
+      "pnl": 0.015345310008901908,
+      "trades": 1,
+      "wins": 1
+    }
+  },
+  "_crc": "5b0bc159ee4b96516bc6b8bd9841965d"
+}
