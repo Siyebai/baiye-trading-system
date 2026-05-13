@@ -1,0 +1,1061 @@
+{
+  "generated_at": "2026-05-13T14:26:35.343197+00:00",
+  "total_n": 100,
+  "wr": 0.62,
+  "pf": 1.1462,
+  "ev": 0.1679,
+  "total_pnl_maker": 16.79,
+  "total_pnl_taker": -38.31,
+  "monthly_pct": 1.87,
+  "tp_count": 62,
+  "sl_count": 38,
+  "avg_win": 2.1235,
+  "avg_loss": -3.0229,
+  "rr": 0.702,
+  "symbol_breakdown": {
+    "BTCUSDT": {
+      "n": 40,
+      "wr": 0.65,
+      "pf": 1.2557048651335083,
+      "pnl": 10.6636877827792
+    },
+    "SOLUSDT": {
+      "n": 48,
+      "wr": 0.6041666666666666,
+      "pf": 1.1176596384025073,
+      "pnl": 6.826999085129422
+    },
+    "BNBUSDT": {
+      "n": 10,
+      "wr": 0.7,
+      "pf": 1.613282927959116,
+      "pnl": 5.490186919403481
+    },
+    "LINKUSDT": {
+      "n": 12,
+      "wr": 0.5833333333333334,
+      "pf": 1.0164729399234933,
+      "pnl": 0.24304376514065407
+    },
+    "POLUSDT": {
+      "n": 46,
+      "wr": 0.6521739130434783,
+      "pf": 1.2963547350351787,
+      "pnl": 13.876906429100625
+    },
+    "DOTUSDT": {
+      "n": 128,
+      "wr": 0.59375,
+      "pf": 1.0084392879382402,
+      "pnl": 1.0685206296447536
+    },
+    "SUIUSDT": {
+      "n": 23,
+      "wr": 0.6521739130434783,
+      "pf": 1.3181134483483896,
+      "pnl": 7.426412656428498
+    }
+  },
+  "trades": [
+    {
+      "no": 1,
+      "symbol": "BTCUSDT",
+      "side": "SHORT",
+      "result": "SL",
+      "pnl_maker": -2.7861,
+      "entry": 90416.4,
+      "exit": 90940.0254,
+      "notional": 450.0
+    },
+    {
+      "no": 2,
+      "symbol": "BTCUSDT",
+      "side": "SHORT",
+      "result": "SL",
+      "pnl_maker": -2.8283,
+      "entry": 90461.9,
+      "exit": 91007.5246,
+      "notional": 439.75
+    },
+    {
+      "no": 3,
+      "symbol": "BTCUSDT",
+      "side": "SHORT",
+      "result": "TP",
+      "pnl_maker": 1.8625,
+      "entry": 86170.0,
+      "exit": 85761.7821,
+      "notional": 429.42
+    },
+    {
+      "no": 4,
+      "symbol": "BTCUSDT",
+      "side": "SHORT",
+      "result": "TP",
+      "pnl_maker": 2.2029,
+      "entry": 85106.0,
+      "exit": 84374.283,
+      "notional": 268.73
+    },
+    {
+      "no": 5,
+      "symbol": "BTCUSDT",
+      "side": "SHORT",
+      "result": "TP",
+      "pnl_maker": 1.8068,
+      "entry": 88433.4,
+      "exit": 88033.8069,
+      "notional": 438.68
+    },
+    {
+      "no": 6,
+      "symbol": "BTCUSDT",
+      "side": "SHORT",
+      "result": "SL",
+      "pnl_maker": -2.8036,
+      "entry": 86107.2,
+      "exit": 86618.6103,
+      "notional": 442.26
+    },
+    {
+      "no": 7,
+      "symbol": "BTCUSDT",
+      "side": "SHORT",
+      "result": "TP",
+      "pnl_maker": 1.9935,
+      "entry": 91718.4,
+      "exit": 91258.4641,
+      "notional": 431.99
+    },
+    {
+      "no": 8,
+      "symbol": "BTCUSDT",
+      "side": "SHORT",
+      "result": "TP",
+      "pnl_maker": 1.9505,
+      "entry": 89551.3,
+      "exit": 89115.002,
+      "notional": 436.16
+    },
+    {
+      "no": 9,
+      "symbol": "BTCUSDT",
+      "side": "SHORT",
+      "result": "TP",
+      "pnl_maker": 1.8651,
+      "entry": 93254.7,
+      "exit": 92822.258,
+      "notional": 440.18
+    },
+    {
+      "no": 10,
+      "symbol": "BTCUSDT",
+      "side": "SHORT",
+      "result": "TP",
+      "pnl_maker": 1.928,
+      "entry": 85588.0,
+      "exit": 85182.0546,
+      "notional": 443.93
+    },
+    {
+      "no": 11,
+      "symbol": "BTCUSDT",
+      "side": "SHORT",
+      "result": "TP",
+      "pnl_maker": 1.8853,
+      "entry": 83001.0,
+      "exit": 82618.3962,
+      "notional": 447.85
+    },
+    {
+      "no": 12,
+      "symbol": "BTCUSDT",
+      "side": "SHORT",
+      "result": "TP",
+      "pnl_maker": 2.2764,
+      "entry": 75655.9,
+      "exit": 75104.8588,
+      "notional": 330.7
+    },
+    {
+      "no": 13,
+      "symbol": "BTCUSDT",
+      "side": "SHORT",
+      "result": "TP",
+      "pnl_maker": 2.3073,
+      "entry": 76746.4,
+      "exit": 76172.5302,
+      "notional": 326.0
+    },
+    {
+      "no": 14,
+      "symbol": "BTCUSDT",
+      "side": "SHORT",
+      "result": "TP",
+      "pnl_maker": 2.3194,
+      "entry": 71383.2,
+      "exit": 70906.8337,
+      "notional": 369.72
+    },
+    {
+      "no": 15,
+      "symbol": "BTCUSDT",
+      "side": "SHORT",
+      "result": "SL",
+      "pnl_maker": -3.2817,
+      "entry": 70095.0,
+      "exit": 70636.3529,
+      "notional": 404.0
+    },
+    {
+      "no": 16,
+      "symbol": "BTCUSDT",
+      "side": "SHORT",
+      "result": "SL",
+      "pnl_maker": -3.1035,
+      "entry": 64280.0,
+      "exit": 65576.1339,
+      "notional": 150.92
+    },
+    {
+      "no": 17,
+      "symbol": "BTCUSDT",
+      "side": "SHORT",
+      "result": "SL",
+      "pnl_maker": -3.1058,
+      "entry": 69896.0,
+      "exit": 70541.4899,
+      "notional": 322.35
+    },
+    {
+      "no": 18,
+      "symbol": "BTCUSDT",
+      "side": "SHORT",
+      "result": "TP",
+      "pnl_maker": 2.2035,
+      "entry": 70675.5,
+      "exit": 70132.7268,
+      "notional": 302.69
+    },
+    {
+      "no": 19,
+      "symbol": "BTCUSDT",
+      "side": "SHORT",
+      "result": "TP",
+      "pnl_maker": 2.2078,
+      "entry": 71165.2,
+      "exit": 70704.1795,
+      "notional": 363.23
+    },
+    {
+      "no": 20,
+      "symbol": "BTCUSDT",
+      "side": "SHORT",
+      "result": "SL",
+      "pnl_maker": -3.1237,
+      "entry": 69232.5,
+      "exit": 69689.3765,
+      "notional": 446.3
+    },
+    {
+      "no": 21,
+      "symbol": "BTCUSDT",
+      "side": "SHORT",
+      "result": "TP",
+      "pnl_maker": 2.0639,
+      "entry": 70912.6,
+      "exit": 70547.8197,
+      "notional": 435.05
+    },
+    {
+      "no": 22,
+      "symbol": "BTCUSDT",
+      "side": "SHORT",
+      "result": "SL",
+      "pnl_maker": -3.0813,
+      "entry": 69241.0,
+      "exit": 69698.8435,
+      "notional": 439.42
+    },
+    {
+      "no": 23,
+      "symbol": "BTCUSDT",
+      "side": "SHORT",
+      "result": "TP",
+      "pnl_maker": 1.9406,
+      "entry": 68421.0,
+      "exit": 68083.636,
+      "notional": 428.33
+    },
+    {
+      "no": 24,
+      "symbol": "BTCUSDT",
+      "side": "SHORT",
+      "result": "TP",
+      "pnl_maker": 1.7753,
+      "entry": 63459.0,
+      "exit": 63173.0487,
+      "notional": 432.35
+    },
+    {
+      "no": 25,
+      "symbol": "BTCUSDT",
+      "side": "SHORT",
+      "result": "TP",
+      "pnl_maker": 1.7997,
+      "entry": 63172.2,
+      "exit": 62886.0893,
+      "notional": 435.86
+    },
+    {
+      "no": 26,
+      "symbol": "BTCUSDT",
+      "side": "SHORT",
+      "result": "TP",
+      "pnl_maker": 1.8289,
+      "entry": 67466.1,
+      "exit": 67158.3233,
+      "notional": 439.43
+    },
+    {
+      "no": 27,
+      "symbol": "BTCUSDT",
+      "side": "SHORT",
+      "result": "SL",
+      "pnl_maker": -2.7858,
+      "entry": 64851.0,
+      "exit": 65232.8154,
+      "notional": 443.07
+    },
+    {
+      "no": 28,
+      "symbol": "BTCUSDT",
+      "side": "SHORT",
+      "result": "TP",
+      "pnl_maker": 1.9731,
+      "entry": 66918.6,
+      "exit": 66586.7872,
+      "notional": 432.85
+    },
+    {
+      "no": 29,
+      "symbol": "BTCUSDT",
+      "side": "SHORT",
+      "result": "TP",
+      "pnl_maker": 2.1691,
+      "entry": 67863.7,
+      "exit": 67471.5814,
+      "notional": 403.32
+    },
+    {
+      "no": 30,
+      "symbol": "BTCUSDT",
+      "side": "SHORT",
+      "result": "SL",
+      "pnl_maker": -3.119,
+      "entry": 68525.3,
+      "exit": 68989.4275,
+      "notional": 434.83
+    },
+    {
+      "no": 31,
+      "symbol": "BTCUSDT",
+      "side": "SHORT",
+      "result": "TP",
+      "pnl_maker": 2.1455,
+      "entry": 68790.7,
+      "exit": 68372.0092,
+      "notional": 377.3
+    },
+    {
+      "no": 32,
+      "symbol": "BTCUSDT",
+      "side": "SHORT",
+      "result": "SL",
+      "pnl_maker": -3.0048,
+      "entry": 71289.1,
+      "exit": 71752.5327,
+      "notional": 435.43
+    },
+    {
+      "no": 33,
+      "symbol": "BTCUSDT",
+      "side": "SHORT",
+      "result": "TP",
+      "pnl_maker": 2.1086,
+      "entry": 73492.1,
+      "exit": 73065.0565,
+      "notional": 389.71
+    },
+    {
+      "no": 34,
+      "symbol": "BTCUSDT",
+      "side": "SHORT",
+      "result": "TP",
+      "pnl_maker": 2.1183,
+      "entry": 73842.8,
+      "exit": 73447.8594,
+      "notional": 428.07
+    },
+    {
+      "no": 35,
+      "symbol": "BTCUSDT",
+      "side": "SHORT",
+      "result": "SL",
+      "pnl_maker": -2.8962,
+      "entry": 70715.5,
+      "exit": 71159.2893,
+      "notional": 433.84
+    },
+    {
+      "no": 36,
+      "symbol": "BTCUSDT",
+      "side": "LONG",
+      "result": "TP",
+      "pnl_maker": 1.8836,
+      "entry": 70470.6,
+      "exit": 70812.348,
+      "notional": 423.33
+    },
+    {
+      "no": 37,
+      "symbol": "BTCUSDT",
+      "side": "LONG",
+      "result": "TP",
+      "pnl_maker": 1.9425,
+      "entry": 71359.8,
+      "exit": 71712.8237,
+      "notional": 427.2
+    },
+    {
+      "no": 38,
+      "symbol": "BTCUSDT",
+      "side": "SHORT",
+      "result": "SL",
+      "pnl_maker": -3.0305,
+      "entry": 70712.9,
+      "exit": 71235.2794,
+      "notional": 389.16
+    },
+    {
+      "no": 39,
+      "symbol": "BTCUSDT",
+      "side": "SHORT",
+      "result": "SL",
+      "pnl_maker": -2.7526,
+      "entry": 67814.5,
+      "exit": 68231.2856,
+      "notional": 420.51
+    },
+    {
+      "no": 40,
+      "symbol": "BTCUSDT",
+      "side": "LONG",
+      "result": "TP",
+      "pnl_maker": 1.8088,
+      "entry": 71449.9,
+      "exit": 71793.3198,
+      "notional": 410.48
+    },
+    {
+      "no": 41,
+      "symbol": "SOLUSDT",
+      "side": "SHORT",
+      "result": "SL",
+      "pnl_maker": -2.934,
+      "entry": 140.77,
+      "exit": 141.6315,
+      "notional": 450.0
+    },
+    {
+      "no": 42,
+      "symbol": "SOLUSDT",
+      "side": "SHORT",
+      "result": "TP",
+      "pnl_maker": 2.2086,
+      "entry": 135.33,
+      "exit": 134.3862,
+      "notional": 335.95
+    },
+    {
+      "no": 43,
+      "symbol": "SOLUSDT",
+      "side": "LONG",
+      "result": "TP",
+      "pnl_maker": 2.1236,
+      "entry": 142.78,
+      "exit": 143.5192,
+      "notional": 444.52
+    },
+    {
+      "no": 44,
+      "symbol": "SOLUSDT",
+      "side": "SHORT",
+      "result": "TP",
+      "pnl_maker": 2.2548,
+      "entry": 137.46,
+      "exit": 136.5195,
+      "notional": 350.03
+    },
+    {
+      "no": 45,
+      "symbol": "SOLUSDT",
+      "side": "LONG",
+      "result": "TP",
+      "pnl_maker": 2.2622,
+      "entry": 142.69,
+      "exit": 143.5497,
+      "notional": 402.19
+    },
+    {
+      "no": 46,
+      "symbol": "SOLUSDT",
+      "side": "SHORT",
+      "result": "SL",
+      "pnl_maker": -2.8887,
+      "entry": 132.91,
+      "exit": 133.6925,
+      "notional": 459.42
+    },
+    {
+      "no": 47,
+      "symbol": "SOLUSDT",
+      "side": "SHORT",
+      "result": "TP",
+      "pnl_maker": 2.2371,
+      "entry": 135.91,
+      "exit": 135.0789,
+      "notional": 391.43
+    },
+    {
+      "no": 48,
+      "symbol": "SOLUSDT",
+      "side": "LONG",
+      "result": "TP",
+      "pnl_maker": 2.2627,
+      "entry": 135.29,
+      "exit": 136.1189,
+      "notional": 395.1
+    },
+    {
+      "no": 49,
+      "symbol": "SOLUSDT",
+      "side": "SHORT",
+      "result": "TP",
+      "pnl_maker": 2.296,
+      "entry": 141.34,
+      "exit": 140.4301,
+      "notional": 380.27
+    },
+    {
+      "no": 50,
+      "symbol": "SOLUSDT",
+      "side": "LONG",
+      "result": "SL",
+      "pnl_maker": -3.2306,
+      "entry": 142.75,
+      "exit": 141.4431,
+      "notional": 338.1
+    },
+    {
+      "no": 51,
+      "symbol": "SOLUSDT",
+      "side": "LONG",
+      "result": "TP",
+      "pnl_maker": 2.2705,
+      "entry": 137.71,
+      "exit": 138.6188,
+      "notional": 366.27
+    },
+    {
+      "no": 52,
+      "symbol": "SOLUSDT",
+      "side": "SHORT",
+      "result": "TP",
+      "pnl_maker": 2.3018,
+      "entry": 137.23,
+      "exit": 136.2935,
+      "notional": 358.32
+    },
+    {
+      "no": 53,
+      "symbol": "SOLUSDT",
+      "side": "LONG",
+      "result": "TP",
+      "pnl_maker": 2.3152,
+      "entry": 136.03,
+      "exit": 136.8777,
+      "notional": 397.01
+    },
+    {
+      "no": 54,
+      "symbol": "SOLUSDT",
+      "side": "LONG",
+      "result": "SL",
+      "pnl_maker": -3.2659,
+      "entry": 126.51,
+      "exit": 125.3648,
+      "notional": 345.51
+    },
+    {
+      "no": 55,
+      "symbol": "SOLUSDT",
+      "side": "SHORT",
+      "result": "TP",
+      "pnl_maker": 2.2601,
+      "entry": 131.55,
+      "exit": 130.8441,
+      "notional": 455.1
+    },
+    {
+      "no": 56,
+      "symbol": "SOLUSDT",
+      "side": "LONG",
+      "result": "SL",
+      "pnl_maker": -3.2492,
+      "entry": 139.39,
+      "exit": 138.3418,
+      "notional": 410.24
+    },
+    {
+      "no": 57,
+      "symbol": "SOLUSDT",
+      "side": "LONG",
+      "result": "TP",
+      "pnl_maker": 1.9538,
+      "entry": 137.48,
+      "exit": 138.1302,
+      "notional": 451.3
+    },
+    {
+      "no": 58,
+      "symbol": "SOLUSDT",
+      "side": "SHORT",
+      "result": "TP",
+      "pnl_maker": 2.2725,
+      "entry": 122.32,
+      "exit": 121.5565,
+      "notional": 388.99
+    },
+    {
+      "no": 59,
+      "symbol": "SOLUSDT",
+      "side": "SHORT",
+      "result": "TP",
+      "pnl_maker": 2.2933,
+      "entry": 115.5,
+      "exit": 114.8014,
+      "notional": 406.01
+    },
+    {
+      "no": 60,
+      "symbol": "SOLUSDT",
+      "side": "SHORT",
+      "result": "SL",
+      "pnl_maker": -3.1925,
+      "entry": 103.87,
+      "exit": 105.3291,
+      "notional": 220.98
+    },
+    {
+      "no": 61,
+      "symbol": "SOLUSDT",
+      "side": "SHORT",
+      "result": "TP",
+      "pnl_maker": 2.3872,
+      "entry": 78.18,
+      "exit": 76.2845,
+      "notional": 100.12
+    },
+    {
+      "no": 62,
+      "symbol": "SOLUSDT",
+      "side": "LONG",
+      "result": "TP",
+      "pnl_maker": 2.2569,
+      "entry": 88.13,
+      "exit": 88.5959,
+      "notional": 461.86
+    },
+    {
+      "no": 63,
+      "symbol": "SOLUSDT",
+      "side": "SHORT",
+      "result": "SL",
+      "pnl_maker": -3.274,
+      "entry": 78.07,
+      "exit": 78.667,
+      "notional": 406.84
+    },
+    {
+      "no": 64,
+      "symbol": "SOLUSDT",
+      "side": "SHORT",
+      "result": "TP",
+      "pnl_maker": 2.2838,
+      "entry": 83.61,
+      "exit": 83.0451,
+      "notional": 359.3
+    },
+    {
+      "no": 65,
+      "symbol": "SOLUSDT",
+      "side": "SHORT",
+      "result": "SL",
+      "pnl_maker": -3.1873,
+      "entry": 85.82,
+      "exit": 86.3797,
+      "notional": 460.5
+    },
+    {
+      "no": 66,
+      "symbol": "SOLUSDT",
+      "side": "SHORT",
+      "result": "TP",
+      "pnl_maker": 2.2176,
+      "entry": 83.66,
+      "exit": 83.2074,
+      "notional": 442.67
+    },
+    {
+      "no": 67,
+      "symbol": "SOLUSDT",
+      "side": "SHORT",
+      "result": "SL",
+      "pnl_maker": -3.0771,
+      "entry": 79.12,
+      "exit": 79.6249,
+      "notional": 453.8
+    },
+    {
+      "no": 68,
+      "symbol": "SOLUSDT",
+      "side": "SHORT",
+      "result": "TP",
+      "pnl_maker": 2.0331,
+      "entry": 80.4,
+      "exit": 79.9986,
+      "notional": 442.66
+    },
+    {
+      "no": 69,
+      "symbol": "SOLUSDT",
+      "side": "LONG",
+      "result": "TP",
+      "pnl_maker": 2.2168,
+      "entry": 81.71,
+      "exit": 82.1775,
+      "notional": 416.59
+    },
+    {
+      "no": 70,
+      "symbol": "SOLUSDT",
+      "side": "LONG",
+      "result": "TP",
+      "pnl_maker": 2.2306,
+      "entry": 81.15,
+      "exit": 81.5869,
+      "notional": 447.59
+    },
+    {
+      "no": 71,
+      "symbol": "SOLUSDT",
+      "side": "SHORT",
+      "result": "SL",
+      "pnl_maker": -3.199,
+      "entry": 88.28,
+      "exit": 88.974,
+      "notional": 387.2
+    },
+    {
+      "no": 72,
+      "symbol": "SOLUSDT",
+      "side": "LONG",
+      "result": "TP",
+      "pnl_maker": 2.2431,
+      "entry": 87.59,
+      "exit": 88.2189,
+      "notional": 330.83
+    },
+    {
+      "no": 73,
+      "symbol": "SOLUSDT",
+      "side": "SHORT",
+      "result": "TP",
+      "pnl_maker": 2.2436,
+      "entry": 79.33,
+      "exit": 78.8542,
+      "notional": 400.83
+    },
+    {
+      "no": 74,
+      "symbol": "SOLUSDT",
+      "side": "SHORT",
+      "result": "TP",
+      "pnl_maker": 2.3029,
+      "entry": 84.83,
+      "exit": 84.1851,
+      "notional": 319.77
+    },
+    {
+      "no": 75,
+      "symbol": "SOLUSDT",
+      "side": "SHORT",
+      "result": "TP",
+      "pnl_maker": 2.3318,
+      "entry": 84.84,
+      "exit": 84.1912,
+      "notional": 321.77
+    },
+    {
+      "no": 76,
+      "symbol": "SOLUSDT",
+      "side": "SHORT",
+      "result": "TP",
+      "pnl_maker": 2.3636,
+      "entry": 88.17,
+      "exit": 87.4783,
+      "notional": 317.48
+    },
+    {
+      "no": 77,
+      "symbol": "SOLUSDT",
+      "side": "SHORT",
+      "result": "SL",
+      "pnl_maker": -3.339,
+      "entry": 82.9,
+      "exit": 83.4579,
+      "notional": 468.33
+    },
+    {
+      "no": 78,
+      "symbol": "SOLUSDT",
+      "side": "LONG",
+      "result": "TP",
+      "pnl_maker": 2.3552,
+      "entry": 86.62,
+      "exit": 87.4534,
+      "notional": 255.4
+    },
+    {
+      "no": 79,
+      "symbol": "SOLUSDT",
+      "side": "SHORT",
+      "result": "SL",
+      "pnl_maker": -3.2747,
+      "entry": 89.74,
+      "exit": 90.4253,
+      "notional": 407.48
+    },
+    {
+      "no": 80,
+      "symbol": "SOLUSDT",
+      "side": "LONG",
+      "result": "TP",
+      "pnl_maker": 2.2546,
+      "entry": 89.2,
+      "exit": 89.7002,
+      "notional": 432.97
+    },
+    {
+      "no": 81,
+      "symbol": "SOLUSDT",
+      "side": "SHORT",
+      "result": "SL",
+      "pnl_maker": -2.9887,
+      "entry": 92.01,
+      "exit": 92.5708,
+      "notional": 460.16
+    },
+    {
+      "no": 82,
+      "symbol": "SOLUSDT",
+      "side": "SHORT",
+      "result": "SL",
+      "pnl_maker": -3.1577,
+      "entry": 93.25,
+      "exit": 93.9369,
+      "notional": 406.59
+    },
+    {
+      "no": 83,
+      "symbol": "SOLUSDT",
+      "side": "SHORT",
+      "result": "TP",
+      "pnl_maker": 1.8171,
+      "entry": 95.28,
+      "exit": 94.8467,
+      "notional": 438.08
+    },
+    {
+      "no": 84,
+      "symbol": "SOLUSDT",
+      "side": "LONG",
+      "result": "SL",
+      "pnl_maker": -2.8177,
+      "entry": 89.81,
+      "exit": 89.273,
+      "notional": 441.7
+    },
+    {
+      "no": 85,
+      "symbol": "SOLUSDT",
+      "side": "SHORT",
+      "result": "SL",
+      "pnl_maker": -2.8689,
+      "entry": 81.93,
+      "exit": 82.4421,
+      "notional": 431.39
+    },
+    {
+      "no": 86,
+      "symbol": "SOLUSDT",
+      "side": "SHORT",
+      "result": "SL",
+      "pnl_maker": -2.5907,
+      "entry": 82.45,
+      "exit": 82.9244,
+      "notional": 420.97
+    },
+    {
+      "no": 87,
+      "symbol": "SOLUSDT",
+      "side": "SHORT",
+      "result": "SL",
+      "pnl_maker": -2.6974,
+      "entry": 81.58,
+      "exit": 82.0822,
+      "notional": 411.43
+    },
+    {
+      "no": 88,
+      "symbol": "SOLUSDT",
+      "side": "LONG",
+      "result": "SL",
+      "pnl_maker": -2.7901,
+      "entry": 84.91,
+      "exit": 84.1031,
+      "notional": 281.73
+    },
+    {
+      "no": 89,
+      "symbol": "BNBUSDT",
+      "side": "SHORT",
+      "result": "SL",
+      "pnl_maker": -3.0462,
+      "entry": 929.11,
+      "exit": 935.0278,
+      "notional": 450.0
+    },
+    {
+      "no": 90,
+      "symbol": "BNBUSDT",
+      "side": "SHORT",
+      "result": "SL",
+      "pnl_maker": -2.9067,
+      "entry": 930.23,
+      "exit": 936.0176,
+      "notional": 438.97
+    },
+    {
+      "no": 91,
+      "symbol": "BNBUSDT",
+      "side": "SHORT",
+      "result": "TP",
+      "pnl_maker": 1.8386,
+      "entry": 911.79,
+      "exit": 907.5122,
+      "notional": 428.41
+    },
+    {
+      "no": 92,
+      "symbol": "BNBUSDT",
+      "side": "SHORT",
+      "result": "TP",
+      "pnl_maker": 1.999,
+      "entry": 832.16,
+      "exit": 827.9775,
+      "notional": 432.12
+    },
+    {
+      "no": 93,
+      "symbol": "BNBUSDT",
+      "side": "SHORT",
+      "result": "TP",
+      "pnl_maker": 2.205,
+      "entry": 683.62,
+      "exit": 678.4014,
+      "notional": 304.82
+    },
+    {
+      "no": 94,
+      "symbol": "BNBUSDT",
+      "side": "SHORT",
+      "result": "SL",
+      "pnl_maker": -2.9992,
+      "entry": 621.87,
+      "exit": 635.1992,
+      "notional": 137.36
+    },
+    {
+      "no": 95,
+      "symbol": "BNBUSDT",
+      "side": "SHORT",
+      "result": "TP",
+      "pnl_maker": 2.154,
+      "entry": 643.07,
+      "exit": 639.1282,
+      "notional": 375.93
+    },
+    {
+      "no": 96,
+      "symbol": "BNBUSDT",
+      "side": "SHORT",
+      "result": "TP",
+      "pnl_maker": 2.1593,
+      "entry": 614.6,
+      "exit": 611.2512,
+      "notional": 427.7
+    },
+    {
+      "no": 97,
+      "symbol": "BNBUSDT",
+      "side": "SHORT",
+      "result": "TP",
+      "pnl_maker": 2.0707,
+      "entry": 612.35,
+      "exit": 609.2339,
+      "notional": 441.63
+    },
+    {
+      "no": 98,
+      "symbol": "BNBUSDT",
+      "side": "SHORT",
+      "result": "TP",
+      "pnl_maker": 2.0157,
+      "entry": 645.68,
+      "exit": 642.5035,
+      "notional": 445.99
+    },
+    {
+      "no": 99,
+      "symbol": "LINKUSDT",
+      "side": "SHORT",
+      "result": "SL",
+      "pnl_maker": -3.1241,
+      "entry": 13.128,
+      "exit": 13.2549,
+      "notional": 310.3
+    },
+    {
+      "no": 100,
+      "symbol": "LINKUSDT",
+      "side": "SHORT",
+      "result": "SL",
+      "pnl_maker": -3.067,
+      "entry": 13.304,
+      "exit": 13.4168,
+      "notional": 345.4
+    }
+  ]
+}

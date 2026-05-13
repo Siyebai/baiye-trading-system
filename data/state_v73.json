@@ -1,21 +1,44 @@
 {
-  "positions": {},
-  "equity": 150.0153453100089,
+  "positions": {
+    "BNBUSDT": {
+      "side": "short",
+      "tf": "5m",
+      "entry": 672.07,
+      "sl": 674.8449923096554,
+      "tp": 666.5200153806893,
+      "qty": 0.11139362596233345,
+      "notional": 74.8643,
+      "score": 8.0,
+      "adx": 43.0,
+      "atr": 1.84999487,
+      "rsi": 45.4,
+      "tp_s": 3.0,
+      "dynamic_tp": true,
+      "cu": 5,
+      "cd": 0,
+      "cc": 0.006274531356909285,
+      "bar_ts": 1778682000000,
+      "bars_held": 0,
+      "trailing_active": false,
+      "open_time": "2026-05-13T14:25:11.192723+00:00"
+    }
+  },
+  "equity": 149.7286284010109,
   "peak_equity": 150.0153453100089,
-  "max_drawdown": 0.0,
-  "day_loss": 0.0,
+  "max_drawdown": 0.19112505351070047,
+  "day_loss": 0.2867169089980282,
   "day_date": "2026-05-13",
-  "total_trades": 1,
+  "total_trades": 2,
   "wins": 1,
-  "losses": 0,
-  "total_pnl": 0.015345310008901908,
-  "streak": 1,
+  "losses": 1,
+  "total_pnl": -0.27137159898912633,
+  "streak": -1,
   "daily_stats": {
     "2026-05-13": {
-      "pnl": 0.015345310008901908,
-      "trades": 1,
+      "pnl": -0.27137159898912633,
+      "trades": 2,
       "wins": 1
     }
   },
-  "_crc": "5b0bc159ee4b96516bc6b8bd9841965d"
+  "_crc": "07e6ef20c5eda2a0d30b7efcd8ca0668"
 }
