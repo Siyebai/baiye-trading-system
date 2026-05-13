@@ -232,8 +232,9 @@ def _raw_signal(symbol: str, df: pd.DataFrame, sym_cfg: dict) -> Optional[dict]:
     if adx >= cfg.DYNAMIC_TP_ADX_TH:
         tp_s = tp_s * cfg.DYNAMIC_TP_MULT
 
-    # SHORT: 连涨≥sc + 累涨≥ccp + RSI超买辅助(不强制过滤，仅评分)
-    if cu >= sym_cfg["sc"] and cc >= sym_cfg["ccp"]:
+    # SHORT: 连涨≥sc + 累涨≥ccp + close<EMA200(趋势过滤)
+    if (cu >= sym_cfg["sc"] and cc >= sym_cfg["ccp"]
+            and (ema <= 0 or entry < ema)):  # EMA200方向过滤：SHORT只在價格下EMA200时开空
         return {
             "side":       "short",
             "entry":      entry,

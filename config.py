@@ -1,114 +1,153 @@
 """
-白夜交易系统 v7.2 — 配置层
+白夜交易系统 v7.2 — 配置层（深度整合终版）
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 融合来源:
   v7.1  — 6品种验证参数、Wilder指标、动态TP、日熔断
-  config.py(v7.2草稿) — 相关性控制、WRGuard、Kelly、追踪止损
-  v9.3  — 多周期框架、信号评分、shadow模式、状态CRC校验
+  v7.2c — 相关性控制、WRGuard、Kelly、追踪止损、多周期
+  v9.3  — SymCfg、6层评分参数、3段追踪、弹性WRGuard、资金费率
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Dict
 
-# ═══════════ 版本 ═══════════
 VERSION = "7.2"
 
 # ═══════════ 交易所 ═══════════
-EXCHANGE          = "binance"
-BINANCE_API_KEY   = "zv6mpAUG7avCTk9IUztR8Ysegyj3AgIPDEnZt31ycA4600msoQlwiU358jMse3w1"
-BINANCE_SECRET    = "JgtCa5lfjqf51Gj4XeOmGJWDwcITNBFm51eXXDyAXeg2FNZQ5hi9hLDcrx0EkG2Y"
-BINANCE_TESTNET   = False
-BINANCE_BASE_URL  = ("https://testnet.binancefuture.com"
-                     if BINANCE_TESTNET else "https://fapi.binance.com")
+EXCHANGE         = "binance"
+BINANCE_API_KEY  = "zv6mpAUG7avCTk9IUztR8Ysegyj3AgIPDEnZt31ycA4600msoQlwiU358jMse3w1"
+BINANCE_SECRET   = "JgtCa5lfjqf51Gj4XeOmGJWDwcITNBFm51eXXDyAXeg2FNZQ5hi9hLDcrx0EkG2Y"
+BINANCE_TESTNET  = False
+BINANCE_BASE_URL = ("https://testnet.binancefuture.com"
+                    if BINANCE_TESTNET else "https://fapi.binance.com")
 
 # ═══════════ 运行模式 ═══════════
-# paper: 无真实下单 | shadow: 实盘镜像（只读）| live: 实盘（需主人确认）
-RUN_MODE = "paper"
+RUN_MODE = "paper"   # paper | shadow | live
 
 # ═══════════ 资金 ═══════════
-INITIAL_EQUITY = 150.0    # 初始资金 U
-LEVERAGE       = 1        # paper不用杠杆；live再调
+INITIAL_EQUITY = 150.0
+LEVERAGE       = 1
 
 # ═══════════ 手续费 ═══════════
-FEE_MAKER = 0.0002        # Maker限价单 0.02% 单边
-FEE_TAKER = 0.0004        # Taker市价单 0.04% 单边（保守回测用）
-FEE       = FEE_MAKER     # 默认用Maker
+FEE_MAKER = 0.0002
+FEE_TAKER = 0.0004
+FEE       = FEE_MAKER
 
 # ═══════════ 风控 ═══════════
-DAILY_LOSS_PCT       = 0.06   # 日熔断：单日亏损≥6%权益停止
-MAX_OPEN_POSITIONS   = 7      # 最大同时持仓（7品种各1）
-MAX_HOLD_BARS        = 30     # 最多持仓30根K线，超时强制平仓
-COOLDOWN_BARS        = 5      # 同品种同方向冷却K线数
-MIN_NOTIONAL         = 5.0    # 最小名义值 U
-MIN_RR_RATIO         = 1.5    # 最低盈亏比（开仓过滤）
+DAILY_LOSS_PCT     = 0.06
+MAX_OPEN_POSITIONS = 7
+MAX_HOLD_BARS      = 30
+COOLDOWN_BARS      = 5
+MIN_NOTIONAL       = 5.0
+MIN_RR_RATIO       = 1.5
 
-# ═══════════ 多周期配置（v7.2核心新增）═══════════
-# 短线布局：3m快速、5m标准、15m核心、60m趋势确认
-TIMEFRAMES = ["3m", "5m", "15m", "1h"]
-TF_WEIGHTS = {
-    "3m":  0.10,   # 超短线，权重低（噪音多）
-    "5m":  0.25,   # 短线主力
-    "15m": 0.45,   # 核心周期（经验证最稳）
-    "1h":  0.20,   # 趋势过滤（Binance期货用1h非60m）
-}
-TF_PRIMARY    = "15m"      # 主周期（信号生成）
-TF_CONFIRM    = "1h"       # 趋势确认周期
-TF_FAST       = "5m"       # 快速信号辅助
-KLINE_LIMIT   = 500        # K线数量（EMA200需200+）
-POLL_SECS     = 30         # 轮询间隔（秒）
+# ═══════════ 多周期 ═══════════
+TIMEFRAMES  = ["3m", "5m", "15m", "1h"]
+TF_PRIMARY  = "15m"
+TF_CONFIRM  = "5m"
+TF_FILTER   = "1h"
+TF_FAST     = "3m"
+KLINE_LIMIT = 500
+POLL_SECS   = 30
 
-# ═══════════ 信号评分（v9.3融合）═══════════
-SIGNAL_MIN_SCORE  = 3.0    # 最低信号综合评分（0-10）
-# 评分项权重（在主引擎中计算）:
-#   ADX强度(0-3) + 多周期共振(0-3) + RR比(0-2) + 趋势对齐(0-2)
+# ═══════════ 指标参数（v9.3新增）═══════════
+EMA_FAST    = 9
+EMA_MID     = 21
+EMA_SLOW    = 55
+RSI_PERIOD  = 14
+RSI_LONG_MIN  = 45;  RSI_LONG_MAX  = 68
+RSI_SHORT_MIN = 32;  RSI_SHORT_MAX = 55
+MACD_FAST   = 12;   MACD_SLOW  = 26;  MACD_SIG = 9
+ATR_PERIOD  = 14
+ADX_MIN     = 18.0
+ATR_VOL_MIN = 0.0025   # ATR/price 最低波动率
+ATR_VOL_MAX = 0.025    # ATR/price 最高波动率（过滤极端波动）
 
-# ═══════════ 品种参数（v7.1 MEMORY验证最优值）═══════════
-# sc=连涨根数触发SHORT | lc=连跌根数触发LONG
-# ccp=累涨跌幅阈值 | adx_th=ADX最低门槛
-# tp_s=止盈ATR倍数 | sl_atr=止损ATR倍数 | long_disabled=禁多
-SYMBOL_CONFIGS = {
-    "BTCUSDT": dict(sc=4, lc=5, ccp=0.002,  adx_th=22, tp_s=0.8, sl_atr=1.0, long_disabled=False),
-    "ETHUSDT": dict(sc=5, lc=4, ccp=0.0015, adx_th=20, tp_s=0.8, sl_atr=1.0, long_disabled=False),
-    "SOLUSDT": dict(sc=5, lc=4, ccp=0.0015, adx_th=30, tp_s=0.8, sl_atr=1.0, long_disabled=False),
-    "BNBUSDT": dict(sc=5, lc=6, ccp=0.0015, adx_th=15, tp_s=0.8, sl_atr=1.0, long_disabled=True),
-    "LINKUSDT":dict(sc=7, lc=4, ccp=0.0025, adx_th=15, tp_s=1.2, sl_atr=1.0, long_disabled=False),
-    "SUIUSDT": dict(sc=7, lc=6, ccp=0.0008, adx_th=30, tp_s=0.8, sl_atr=1.0, long_disabled=False),
-    "POLUSDT": dict(sc=5, lc=4, ccp=0.0015, adx_th=25, tp_s=0.8, sl_atr=1.0, long_disabled=True),
-    # 候选扩展（OOS待验证）: AVAXUSDT, ARBUSDT, OPUSDT, NEARUSDT, INJUSDT
-}
-SYMBOLS = list(SYMBOL_CONFIGS.keys())
+# ═══════════ 信号评分 ═══════════
+SIGNAL_MIN_SCORE = 3.2   # 6层评分 满分5+2=7，开仓要求≥3.2
 
-# ═══════════ 动态TP（v7.0/v7.1继承）═══════════
-DYNAMIC_TP_ADX_TH = 35     # ADX>35 时启用动态TP
-DYNAMIC_TP_MULT   = 1.5    # 强趋势TP扩大倍数
+# ═══════════ 动态TP ═══════════
+DYNAMIC_TP_ADX_TH = 35
+DYNAMIC_TP_MULT   = 1.5
 
-# ═══════════ 追踪止损（v7.2新增）═══════════
+# ═══════════ 3段追踪止损（v9.3升级）═══════════
+TRAIL_BREAKEVEN_ATR  = 0.5   # 浮盈≥0.5ATR → 移至保本
+TRAIL_LOCK_ATR       = 1.0   # 浮盈≥1.0ATR → 锁定0.3ATR盈利
+TRAIL_DYNAMIC_ATR    = 1.5   # 浮盈≥1.5ATR → 动态追踪
+TRAIL_DYNAMIC_DIST   = 0.8   # 动态追踪距当前价 0.8ATR
+# 追踪止损开关及阈值（main_v72.py引用）
 TRAILING_STOP_ENABLED = True
-TRAILING_STOP_THRESH  = 0.5   # 浮盈≥0.5×ATR时激活追踪
-TRAILING_STOP_DIST    = 0.4   # 追踪止损距离：0.4×ATR
+TRAILING_STOP_THRESH  = 0.6  # 浮盈≥0.6ATR开启追踪
+TRAILING_STOP_DIST    = 0.5  # 追踪距离 0.5ATR（保本+少量盈利）
 
-# ═══════════ 相关性控制（v7.2融合）═══════════
+# ═══════════ 相关性控制 ═══════════
 HIGH_CORR_GROUP    = {"BTCUSDT", "ETHUSDT", "SOLUSDT"}
-MAX_CORR_SAME_SIDE = 2        # 高相关品种同侧最多2个
+MAX_CORR_SAME_SIDE = 2
 
-# ═══════════ WinRate Guard（v7.2融合）═══════════
-WR_GUARD_WINDOW   = 30        # 观察最近N笔
-WR_GUARD_MIN_WR   = 0.42      # 低于42%触发守卫（提高RR要求）
-WR_GUARD_MIN_RR   = 2.0       # 守卫模式RR≥2.0
-WR_GUARD_BOOST_WR = 0.60      # 恢复到60%后解除守卫
+# ═══════════ 弹性WRGuard（v9.3升级）═══════════
+WR_GUARD_WINDOW   = 30
+WR_GUARD_MIN_WR   = 0.42
+WR_GUARD_BOOST_WR = 0.62
+WR_GUARD_MIN_RR   = 2.0
+WR_GUARD_PAUSE_WR = 0.25   # WR<25% 完全暂停开仓
 
-# ═══════════ Kelly 仓位（v7.2融合）═══════════
-KELLY_ENABLED     = True
-KELLY_FRACTION    = 0.25      # 25% Kelly（保守）
-KELLY_MIN_TRADES  = 20        # ≥20笔才启用Kelly
-KELLY_MAX_RISK    = 0.04      # Kelly上限4%
-RISK_PCT          = 0.02      # Kelly未启用时默认风险2%
+# ═══════════ Kelly ═══════════
+KELLY_ENABLED    = True
+KELLY_FRACTION   = 0.25
+KELLY_MIN_TRADES = 20
+KELLY_MAX_RISK   = 0.04
+RISK_PCT         = 0.02
+
+# ═══════════ 资金费率过滤（v9.3新增）═══════════
+FUNDING_SKIP_RATE   = 0.001    # |费率|≥0.1% 跳过开仓
+FUNDING_SKIP_WINDOW = 1800     # 距结算<30min 跳过开仓
+FUNDING_UPDATE_SEC  = 900      # 每15min刷新费率
+
+# ═══════════ SymCfg — 品种个性化（v9.3新增）═══════════
+@dataclass(frozen=True)
+class SymCfg:
+    sc:          int   = 5      # 连涨根数触发SHORT
+    lc:          int   = 4      # 连跌根数触发LONG
+    ccp:         float = 0.0015 # 累涨跌幅阈值
+    adx_th:      float = 18.0   # ADX最低门槛
+    tp_mult:     float = 2.0    # 止盈ATR倍数
+    sl_mult:     float = 1.5    # 止损ATR倍数
+    allow_long:  bool  = True
+    allow_short: bool  = True
+
+SYM_CFG: Dict[str, SymCfg] = {
+    "BTCUSDT":  SymCfg(sc=4, lc=5, ccp=0.002,  adx_th=20, tp_mult=1.8, sl_mult=1.4),
+    "ETHUSDT":  SymCfg(sc=5, lc=4, ccp=0.0015, adx_th=18, tp_mult=2.0, sl_mult=1.5),
+    "SOLUSDT":  SymCfg(sc=5, lc=4, ccp=0.0015, adx_th=30, tp_mult=2.2, sl_mult=1.6),
+    "BNBUSDT":  SymCfg(sc=5, lc=6, ccp=0.0015, adx_th=15, tp_mult=2.0, sl_mult=1.5, allow_long=False),
+    "LINKUSDT": SymCfg(sc=7, lc=4, ccp=0.0025, adx_th=25, tp_mult=2.5, sl_mult=1.5),
+    "SUIUSDT":  SymCfg(sc=7, lc=6, ccp=0.0008, adx_th=25, tp_mult=2.0, sl_mult=1.5),
+    "POLUSDT":  SymCfg(sc=5, lc=4, ccp=0.0015, adx_th=25, tp_mult=2.0, sl_mult=1.5, allow_long=False),
+}
+DEFAULT_SYM_CFG = SymCfg()
+SYMBOLS = list(SYM_CFG.keys())
+
+# 兼容层：将SymCfg转换为dict格式（main_v72.py使用dict访问）
+SYMBOL_CONFIGS = {
+    sym: {
+        "sc":            sc.sc,
+        "lc":            sc.lc,
+        "ccp":           sc.ccp,
+        "adx_th":        sc.adx_th,
+        "tp_s":          sc.tp_mult,  # tp_mult即tp_s
+        "sl_atr":        sc.sl_mult,  # sl_mult即sl_atr
+        "long_disabled": not sc.allow_long,
+        "short_disabled":not sc.allow_short,
+    }
+    for sym, sc in SYM_CFG.items()
+}
 
 # ═══════════ 文件路径 ═══════════
-from pathlib import Path
-_BASE = Path(__file__).parent
-LOG_FILE    = str(_BASE / "logs" / "baiye_v72.log")
-STATE_FILE  = str(_BASE / "data" / "state_v72.json")
-TRADE_LOG   = str(_BASE / "data" / "trades_v72.jsonl")
-PID_FILE    = str(_BASE / "data" / "baiye_v72.pid")
+_BASE    = Path(__file__).parent
+LOG_FILE   = str(_BASE / "logs" / "baiye_v72.log")
+STATE_FILE = str(_BASE / "data" / "state_v72.json")
+TRADE_LOG  = str(_BASE / "data" / "trades_v72.jsonl")
+PID_FILE   = str(_BASE / "data" / "baiye_v72.pid")
 
 # ═══════════ 校验 ═══════════
 def validate() -> bool:
@@ -116,9 +155,6 @@ def validate() -> bool:
         raise ValueError(f"RUN_MODE非法: {RUN_MODE}")
     if RUN_MODE == "live" and not BINANCE_API_KEY:
         raise ValueError("实盘模式需配置API Key")
-    if not SYMBOL_CONFIGS:
-        raise ValueError("SYMBOL_CONFIGS为空")
-    for tf, w in TF_WEIGHTS.items():
-        if tf not in TIMEFRAMES:
-            raise ValueError(f"TF_WEIGHTS包含未知周期: {tf}")
+    if not SYM_CFG:
+        raise ValueError("SYM_CFG为空")
     return True
