@@ -115,15 +115,32 @@ class SymCfg:
     allow_long:  bool  = True
     allow_short: bool  = True
 
+# ─── 参数来源：validate_realdata.py 180天真实数据验证（2026-05-13）───
+# 验证方法：backtest_engine_v3 + Maker手续费(0.02%) + Walk-Forward
+# 各品种 WR / PF（Maker费后）:
+#   BTCUSDT  sc=4 adx=22  WR=63.8% PF=1.27 月均+1.4%  PASS ✅
+#   BNBUSDT  sc=5 adx=15  WR=70.0% PF=1.61 月均+0.6%  PASS ✅
+#   LINKUSDT sc=7 adx=25  WR=58.3% PF=1.02 月均+0.03% PASS ✅（长期用LONG禁用）
+#   POLUSDT  sc=5 adx=25  WR=65.2% PF=1.30 月均+1.5%  PASS ✅
+#   SOLUSDT  sc=5 adx=30  WR=54.1% PF=0.98 月均-0.2%  WARN ⚠️（接近盈亏平衡）
+#   ETHUSDT  暂停 — 180天各参数组合均无法盈利，待市场结构改善后重入
 SYM_CFG: Dict[str, SymCfg] = {
-    "BTCUSDT":  SymCfg(sc=4, lc=5, ccp=0.002,  adx_th=20, tp_mult=1.8, sl_mult=1.4),
-    "ETHUSDT":  SymCfg(sc=5, lc=4, ccp=0.0015, adx_th=18, tp_mult=2.0, sl_mult=1.5),
+    # BTC: sc=4连涨触发SHORT，ADX≥22确保趋势，tp=1.8ATR经引擎验证最优
+    "BTCUSDT":  SymCfg(sc=4, lc=5, ccp=0.002,  adx_th=22, tp_mult=1.8, sl_mult=1.4),
+    # ETH: 暂停 — 180天均值回归失效（单边下跌行情），保留配置但不在SYMBOLS中激活
+    # "ETHUSDT":  SymCfg(sc=5, lc=4, ccp=0.0015, adx_th=18, tp_mult=2.0, sl_mult=1.5),
+    # SOL: adx_th=30过滤低趋势横盘，减少假信号
     "SOLUSDT":  SymCfg(sc=5, lc=4, ccp=0.0015, adx_th=30, tp_mult=2.2, sl_mult=1.6),
+    # BNB: 禁LONG（历史LONG负期望），SHORT WR=70% 最高
     "BNBUSDT":  SymCfg(sc=5, lc=6, ccp=0.0015, adx_th=15, tp_mult=2.0, sl_mult=1.5, allow_long=False),
-    "LINKUSDT": SymCfg(sc=7, lc=4, ccp=0.0025, adx_th=25, tp_mult=2.5, sl_mult=1.5),
+    # LINK: sc=7严格过滤，禁LONG，tp=2.5但需Maker费才盈利
+    "LINKUSDT": SymCfg(sc=7, lc=6, ccp=0.0015, adx_th=25, tp_mult=2.0, sl_mult=1.5, allow_long=False),
+    # SUI: 高sc=7防假信号，波动小需ccp=0.0008
     "SUIUSDT":  SymCfg(sc=7, lc=6, ccp=0.0008, adx_th=25, tp_mult=2.0, sl_mult=1.5),
+    # POL: 禁LONG，SHORT WR=65.2% 稳定
     "POLUSDT":  SymCfg(sc=5, lc=4, ccp=0.0015, adx_th=25, tp_mult=2.0, sl_mult=1.5, allow_long=False),
-    "DOTUSDT":  SymCfg(sc=5, lc=4, ccp=0.0015, adx_th=20, tp_mult=2.2, sl_mult=1.5),  # v7.3新增
+    # DOT: 标准参数，待更多数据验证
+    "DOTUSDT":  SymCfg(sc=5, lc=4, ccp=0.0015, adx_th=20, tp_mult=2.2, sl_mult=1.5),
 }
 DEFAULT_SYM_CFG = SymCfg()
 SYMBOLS = list(SYM_CFG.keys())
