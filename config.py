@@ -1,5 +1,5 @@
 """
-白夜交易系统 v7.2 — 配置层（深度整合终版）
+白夜交易系统 v7.3 — 配置层（深度优化版）
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 融合来源:
   v7.1  — 6品种验证参数、Wilder指标、动态TP、日熔断
@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict
 
-VERSION = "7.2"
+VERSION = "7.3"
 
 # ═══════════ 交易所 ═══════════
 EXCHANGE         = "binance"
@@ -64,7 +64,7 @@ ATR_VOL_MIN = 0.0025   # ATR/price 最低波动率
 ATR_VOL_MAX = 0.025    # ATR/price 最高波动率（过滤极端波动）
 
 # ═══════════ 信号评分 ═══════════
-SIGNAL_MIN_SCORE = 3.2   # 6层评分 满分5+2=7，开仓要求≥3.2
+SIGNAL_MIN_SCORE = 2.5   # 6层评分 满分5+2=7，开仓要求≥2.5（v7.3降低提升信号频率）
 
 # ═══════════ 动态TP ═══════════
 DYNAMIC_TP_ADX_TH = 35
@@ -81,7 +81,7 @@ TRAILING_STOP_THRESH  = 0.6  # 浮盈≥0.6ATR开启追踪
 TRAILING_STOP_DIST    = 0.5  # 追踪距离 0.5ATR（保本+少量盈利）
 
 # ═══════════ 相关性控制 ═══════════
-HIGH_CORR_GROUP    = {"BTCUSDT", "ETHUSDT", "SOLUSDT"}
+HIGH_CORR_GROUP    = {"BTCUSDT", "ETHUSDT", "SOLUSDT", "DOTUSDT"}
 MAX_CORR_SAME_SIDE = 2
 
 # ═══════════ 弹性WRGuard（v9.3升级）═══════════
@@ -123,6 +123,7 @@ SYM_CFG: Dict[str, SymCfg] = {
     "LINKUSDT": SymCfg(sc=7, lc=4, ccp=0.0025, adx_th=25, tp_mult=2.5, sl_mult=1.5),
     "SUIUSDT":  SymCfg(sc=7, lc=6, ccp=0.0008, adx_th=25, tp_mult=2.0, sl_mult=1.5),
     "POLUSDT":  SymCfg(sc=5, lc=4, ccp=0.0015, adx_th=25, tp_mult=2.0, sl_mult=1.5, allow_long=False),
+    "DOTUSDT":  SymCfg(sc=5, lc=4, ccp=0.0015, adx_th=20, tp_mult=2.2, sl_mult=1.5),  # v7.3新增
 }
 DEFAULT_SYM_CFG = SymCfg()
 SYMBOLS = list(SYM_CFG.keys())
@@ -144,10 +145,10 @@ SYMBOL_CONFIGS = {
 
 # ═══════════ 文件路径 ═══════════
 _BASE    = Path(__file__).parent
-LOG_FILE   = str(_BASE / "logs" / "baiye_v72.log")
-STATE_FILE = str(_BASE / "data" / "state_v72.json")
-TRADE_LOG  = str(_BASE / "data" / "trades_v72.jsonl")
-PID_FILE   = str(_BASE / "data" / "baiye_v72.pid")
+LOG_FILE   = str(_BASE / "logs" / "baiye_v73.log")
+STATE_FILE = str(_BASE / "data" / "state_v73.json")
+TRADE_LOG  = str(_BASE / "data" / "trades_v73.jsonl")
+PID_FILE   = str(_BASE / "data" / "baiye_v73.pid")
 
 # ═══════════ 校验 ═══════════
 def validate() -> bool:
