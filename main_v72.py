@@ -1,680 +1,564 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-白夜交易系统 v7.2 — 核心引擎
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-整合融合历史:
-  v7.1  Wilder ATR/ADX | cc方向切换修复 | 双触发open价优先 | 动态TP
-        原子写入 | 日熔断 | 冷却期 | 名义值保护 | 单品种异常隔离
-  v7.2c Kelly仓位 | WinRate Guard | 追踪止损 | 相关性控制
-        多时间周期(3m/5m/15m/60m) | 信号评分系统
-  v9.3  EventBus解耦 | 状态CRC校验 | PerfMon滚动统计
-        PositionManager | signal_score加权 | shadow模式
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-目标: 短线高频 | 3~60m多周期布局 | 胜率≥55% | 月均+8%以上
+"""白夜交易系统 v7.2 深度整合终版
+融合: Wilder指标+cc信号 | 6层评分 | 3段追踪止损 | 弹性WRGuard | 资金费率过滤 | Kelly | 相关性控制
 """
 from __future__ import annotations
-
-import hashlib
-import json
-import logging
-import os
-import signal
-import sys
-import time
-import warnings
+import hashlib, json, logging, os, signal, sys, time, warnings
 from collections import deque
-from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
-
 import numpy as np
 import pandas as pd
 import requests
 
 warnings.filterwarnings("ignore")
 
-# ──────────────────────────────────────────────────────────────
-#  导入配置层
-# ──────────────────────────────────────────────────────────────
 try:
     import config as cfg
 except ImportError:
-    raise RuntimeError("未找到 config.py，请确保与 main_v72.py 同目录")
+    raise RuntimeError("未找到 config.py")
 
 cfg.validate()
-
 VERSION = f"v{cfg.VERSION}"
 
-# ──────────────────────────────────────────────────────────────
-#  目录初始化
-# ──────────────────────────────────────────────────────────────
 for _p in (cfg.LOG_FILE, cfg.STATE_FILE, cfg.TRADE_LOG, cfg.PID_FILE):
     Path(_p).parent.mkdir(parents=True, exist_ok=True)
 
-# ──────────────────────────────────────────────────────────────
-#  日志（propagate=False 防双重日志）
-# ──────────────────────────────────────────────────────────────
-def _setup_logger() -> logging.Logger:
+# ── 日志 ──────────────────────────────────────────────────────
+def _setup_logger():
     lg = logging.getLogger("baiye_v72")
-    lg.setLevel(logging.INFO)
-    lg.propagate = False
-    if not lg.handlers:
-        fmt = logging.Formatter("%(asctime)s %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
-        fh = RotatingFileHandler(cfg.LOG_FILE, maxBytes=5*1024*1024, backupCount=3, encoding="utf-8")
-        fh.setFormatter(fmt)
-        sh = logging.StreamHandler(sys.stdout)
-        sh.setFormatter(fmt)
-        lg.addHandler(fh)
-        lg.addHandler(sh)
+    lg.setLevel(logging.INFO); lg.propagate = False
+    if lg.handlers: return lg
+    fmt = logging.Formatter("%(asctime)s %(message)s", "%Y-%m-%d %H:%M:%S")
+    fh = RotatingFileHandler(cfg.LOG_FILE, maxBytes=5<<20, backupCount=3, encoding="utf-8")
+    fh.setFormatter(fmt)
+    sh = logging.StreamHandler(sys.stdout); sh.setFormatter(fmt)
+    lg.addHandler(fh); lg.addHandler(sh)
     return lg
 
 logger = _setup_logger()
-
-# ──────────────────────────────────────────────────────────────
-#  优雅退出
-# ──────────────────────────────────────────────────────────────
 _running = True
 
-def _on_signal(sig, _frame):
+def _on_signal(sig, _):
     global _running
-    logger.warning(f"收到信号 {sig}，当前轮次完成后优雅退出...")
+    logger.warning(f"收到信号{sig}，准备退出...")
     _running = False
 
 signal.signal(signal.SIGTERM, _on_signal)
 signal.signal(signal.SIGINT,  _on_signal)
 
-
 # ══════════════════════════════════════════════════════════════
-#  § 1  技术指标（Wilder's平滑 — 与回测引擎v2.2完全一致）
+# §1  技术指标（Wilder平滑，与回测完全一致）
 # ══════════════════════════════════════════════════════════════
 def _wilder(arr: np.ndarray, n: int) -> np.ndarray:
-    """Wilder's RMA: 初值=前n期简单均值，后: out[i]=out[i-1]*(n-1)/n + arr[i]/n"""
     out = np.full(len(arr), np.nan)
-    valid = np.where(~np.isnan(arr))[0]
-    if len(valid) < n:
-        return out
-    s = valid[0]
-    out[s + n - 1] = np.nanmean(arr[s:s + n])
-    for i in range(s + n, len(arr)):
-        if not np.isnan(out[i - 1]):
-            out[i] = out[i - 1] * (n - 1) / n + arr[i] / n
+    v = np.where(~np.isnan(arr))[0]
+    if len(v) < n: return out
+    s = v[0]; out[s+n-1] = np.nanmean(arr[s:s+n])
+    for i in range(s+n, len(arr)):
+        if not np.isnan(out[i-1]):
+            out[i] = out[i-1]*(n-1)/n + arr[i]/n
     return out
 
-
 def compute_indicators(df: pd.DataFrame) -> pd.DataFrame:
-    """计算 ATR/ADX/EMA200/连涨连跌/累涨跌幅（含方向切换重置修复）"""
     df = df.copy()
     c, h, l = df["close"].values, df["high"].values, df["low"].values
     n = len(c)
-
-    # True Range
-    tr = np.maximum(h - l, np.maximum(
-        np.abs(h - np.roll(c, 1)), np.abs(l - np.roll(c, 1))
-    ))
-    tr[0] = h[0] - l[0]
-
-    # ATR (Wilder, 14)
+    tr = np.maximum(h-l, np.maximum(np.abs(h-np.roll(c,1)), np.abs(l-np.roll(c,1))))
+    tr[0] = h[0]-l[0]
     df["atr"] = _wilder(tr, 14)
 
-    # EMA200
+    # EMA 9/21/55/200
+    df["ema9"]   = df["close"].ewm(span=9,   adjust=False).mean()
+    df["ema21"]  = df["close"].ewm(span=21,  adjust=False).mean()
+    df["ema55"]  = df["close"].ewm(span=55,  adjust=False).mean()
     df["ema200"] = df["close"].ewm(span=200, adjust=False).mean()
 
-    # ADX (Wilder, 14)
-    up  = np.diff(h, prepend=h[0])
-    dn  = np.diff(l, prepend=l[0]) * -1
-    pdm = np.where((up > dn) & (up > 0), up, 0.0)
-    ndm = np.where((dn > up) & (dn > 0), dn, 0.0)
-    atr14 = _wilder(tr, 14)
-    safe  = np.where(atr14 > 0, atr14, np.nan)
-    pdi   = 100 * _wilder(pdm, 14) / safe
-    ndi   = 100 * _wilder(ndm, 14) / safe
-    denom = np.where((pdi + ndi) > 0, pdi + ndi, np.nan)
-    dx    = 100 * np.abs(pdi - ndi) / denom
-    df["adx"] = _wilder(dx, 14)
-    df["pdi"] = pdi
-    df["ndi"] = ndi
+    # ADX
+    up = np.diff(h, prepend=h[0]); dn = np.diff(l, prepend=l[0])*-1
+    pdm = np.where((up>dn)&(up>0), up, 0.0)
+    ndm = np.where((dn>up)&(dn>0), dn, 0.0)
+    atr14 = _wilder(tr, 14); safe = np.where(atr14>0, atr14, np.nan)
+    pdi = 100*_wilder(pdm,14)/safe; ndi = 100*_wilder(ndm,14)/safe
+    denom = np.where((pdi+ndi)>0, pdi+ndi, np.nan)
+    df["adx"] = _wilder(100*np.abs(pdi-ndi)/denom, 14)
+    df["pdi"] = pdi; df["ndi"] = ndi
 
-    # RSI(14) — 多周期共振过滤用
+    # RSI
     delta = np.diff(c, prepend=c[0])
-    gain  = np.where(delta > 0, delta, 0.0)
-    loss  = np.where(delta < 0, -delta, 0.0)
-    avg_g = _wilder(gain, 14)
-    avg_l = _wilder(loss, 14)
-    rs    = np.where(avg_l > 0, avg_g / avg_l, 100.0)
-    df["rsi"] = 100 - 100 / (1 + rs)
+    df["rsi"] = 100 - 100/(1 + _wilder(np.where(delta>0,delta,0.0),14) /
+                           np.where(_wilder(np.where(delta<0,-delta,0.0),14)>0,
+                                    _wilder(np.where(delta<0,-delta,0.0),14), 1e-9))
 
-    # 连涨(cu)/连跌(cd)/累涨跌幅(cc) — 方向切换重置修复（v6.9）
-    cu = np.zeros(n, dtype=int)
-    cd = np.zeros(n, dtype=int)
-    cc = np.zeros(n, dtype=float)
+    # MACD
+    ema12 = df["close"].ewm(span=cfg.MACD_FAST, adjust=False).mean()
+    ema26 = df["close"].ewm(span=cfg.MACD_SLOW, adjust=False).mean()
+    macd  = ema12 - ema26
+    sig9  = macd.ewm(span=cfg.MACD_SIG, adjust=False).mean()
+    df["macd_h"]  = (macd - sig9).values
+    df["macd_hp"] = df["macd_h"].shift(1).values  # 前一根histogram
+
+    # 成交量比（当前/20根均量）
+    df["vol_ma"] = df["vol"].rolling(20, min_periods=5).mean()
+    df["vol_r"]  = df["vol"] / df["vol_ma"].replace(0, np.nan)
+
+    # 连涨(cu)/连跌(cd)/累涨跌(cc) — 方向切换重置修复
+    cu = np.zeros(n, int); cd = np.zeros(n, int); cc = np.zeros(n)
     for i in range(1, n):
-        chg = (c[i] - c[i - 1]) / c[i - 1]
-        if c[i] > c[i - 1]:
-            cu[i] = cu[i - 1] + 1
-            cd[i] = 0
-            cc[i] = chg if cd[i - 1] > 0 else cc[i - 1] + chg
-        elif c[i] < c[i - 1]:
-            cd[i] = cd[i - 1] + 1
-            cu[i] = 0
-            cc[i] = chg if cu[i - 1] > 0 else cc[i - 1] + chg
+        chg = (c[i]-c[i-1])/c[i-1]
+        if c[i] > c[i-1]:
+            cu[i]=cu[i-1]+1; cd[i]=0
+            cc[i] = chg if cd[i-1]>0 else cc[i-1]+chg
+        elif c[i] < c[i-1]:
+            cd[i]=cd[i-1]+1; cu[i]=0
+            cc[i] = chg if cu[i-1]>0 else cc[i-1]+chg
         else:
-            cu[i] = cu[i - 1]; cd[i] = cd[i - 1]; cc[i] = cc[i - 1]
-    df["cu"] = cu; df["cd"] = cd; df["cc"] = cc
+            cu[i]=cu[i-1]; cd[i]=cd[i-1]; cc[i]=cc[i-1]
+    df["cu"]=cu; df["cd"]=cd; df["cc"]=cc
     return df
 
-
 # ══════════════════════════════════════════════════════════════
-#  § 2  数据拉取（多周期 + 重试退避）
+# §2  数据拉取
 # ══════════════════════════════════════════════════════════════
-def fetch_klines(symbol: str, interval: str,
-                 limit: int = cfg.KLINE_LIMIT, retries: int = 3) -> pd.DataFrame:
-    url = f"{cfg.BINANCE_BASE_URL}/fapi/v1/klines"
-    for attempt in range(retries):
+def fetch_klines(symbol: str, interval: str, limit: int = cfg.KLINE_LIMIT) -> pd.DataFrame:
+    for attempt in range(3):
         try:
-            r = requests.get(url, params={"symbol": symbol, "interval": interval,
-                                          "limit": limit}, timeout=10)
+            r = requests.get(f"{cfg.BINANCE_BASE_URL}/fapi/v1/klines",
+                params={"symbol":symbol,"interval":interval,"limit":limit}, timeout=10)
             r.raise_for_status()
-            cols = ["ts","open","high","low","close","vol","ct","qv","tr","tbb","tbq","ign"]
-            df = pd.DataFrame(r.json(), columns=cols)
-            for col in ["open","high","low","close"]:
+            df = pd.DataFrame(r.json(),
+                columns=["ts","open","high","low","close","vol","ct","qv","tr","tbb","tbq","ign"])
+            for col in ["open","high","low","close","vol"]:
                 df[col] = df[col].astype(float)
             return df
         except Exception as e:
-            if attempt < retries - 1:
-                time.sleep(2 * (attempt + 1))
-            else:
-                raise RuntimeError(f"[{symbol}/{interval}] K线拉取失败: {e}")
-
+            if attempt < 2: time.sleep(2*(attempt+1))
+            else: raise RuntimeError(f"[{symbol}/{interval}] 拉取失败: {e}")
 
 def fetch_multi_tf(symbol: str) -> Dict[str, Optional[pd.DataFrame]]:
-    """拉取该品种所有周期K线并计算指标，单品种异常不影响其他品种"""
-    result: Dict[str, Optional[pd.DataFrame]] = {}
+    out: Dict[str, Optional[pd.DataFrame]] = {}
     for tf in cfg.TIMEFRAMES:
-        try:
-            result[tf] = compute_indicators(fetch_klines(symbol, tf))
+        try: out[tf] = compute_indicators(fetch_klines(symbol, tf))
         except Exception as e:
-            logger.warning(f"[{symbol}/{tf}] 数据异常: {e}")
-            result[tf] = None
-    return result
+            logger.warning(f"[{symbol}/{tf}] 数据异常: {e}"); out[tf] = None
+    return out
+
+# ══════════════════════════════════════════════════════════════
+# §3  资金费率过滤器
+# ══════════════════════════════════════════════════════════════
+class FundingFilter:
+    def __init__(self):
+        self._rate: Dict[str, float] = {}
+        self._next: Dict[str, float] = {}
+        self._last_update = 0.0
+
+    def refresh(self):
+        now = time.time()
+        if now - self._last_update < cfg.FUNDING_UPDATE_SEC: return
+        try:
+            r = requests.get(f"{cfg.BINANCE_BASE_URL}/fapi/v1/premiumIndex", timeout=10)
+            r.raise_for_status()
+            for item in r.json():
+                sym = item.get("symbol","")
+                if sym in cfg.SYMBOLS:
+                    self._rate[sym] = float(item.get("lastFundingRate", 0))
+                    self._next[sym] = float(item.get("nextFundingTime", 0))/1000
+            self._last_update = now
+            logger.info(f"[Funding] 费率更新完成，共{len(self._rate)}品种")
+        except Exception as e:
+            logger.warning(f"[Funding] 更新失败: {e}")
+
+    def skip(self, symbol: str) -> bool:
+        rate = abs(self._rate.get(symbol, 0.0))
+        nxt  = self._next.get(symbol, 0.0)
+        if rate >= cfg.FUNDING_SKIP_RATE:
+            return True
+        if nxt > 0 and (nxt - time.time()) < cfg.FUNDING_SKIP_WINDOW:
+            return True
+        return False
 
 
 # ══════════════════════════════════════════════════════════════
-#  § 3  信号检测 + 多周期评分
+# §4  6层信号评分引擎
 # ══════════════════════════════════════════════════════════════
-def _raw_signal(symbol: str, df: pd.DataFrame, sym_cfg: dict) -> Optional[dict]:
-    """
-    单周期原始信号检测（基于已收盘K线 df.iloc[-2]）
-    返回 dict 或 None
-    """
-    if df is None or len(df) < 220:
-        return None
-    row = df.iloc[-2]   # 已收盘K线
-    cur = df.iloc[-1]   # 当前K线（入场价用close模拟Limit）
+def _score_6layer(row, tf_data: dict, symbol: str, side: str) -> float:
+    """6层信号评分，满分7.0，开仓要求≥SIGNAL_MIN_SCORE(3.2)"""
+    lg = (side == "long")
+    score = 0.0
 
+    # L1 EMA趋势对齐 (0~1.0)
+    e9,e21,e55 = float(row["ema9"]), float(row["ema21"]), float(row["ema55"])
+    if   lg  and e9>e21>e55: score += 1.0
+    elif not lg and e9<e21<e55: score += 1.0
+    elif lg  and e9>e21:     score += 0.5
+    elif not lg and e9<e21:  score += 0.5
+
+    # L2 RSI区间 (0~1.0)
+    rsi = float(row["rsi"]) if not np.isnan(row["rsi"]) else 50.0
+    if   lg  and cfg.RSI_LONG_MIN  <= rsi <= cfg.RSI_LONG_MAX:  score += 1.0
+    elif not lg and cfg.RSI_SHORT_MIN <= rsi <= cfg.RSI_SHORT_MAX: score += 1.0
+    elif lg  and rsi < cfg.RSI_LONG_MIN:  score += 0.3
+    elif not lg and rsi > cfg.RSI_SHORT_MAX: score += 0.3
+
+    # L3 MACD histogram方向+加速 (0~1.0)
+    mh  = float(row["macd_h"])  if not np.isnan(row["macd_h"])  else 0.0
+    mhp = float(row["macd_hp"]) if not np.isnan(row["macd_hp"]) else 0.0
+    if   lg  and mh>0 and mh>mhp: score += 1.0
+    elif not lg and mh<0 and mh<mhp: score += 1.0
+    elif lg  and mh>0:             score += 0.5
+    elif not lg and mh<0:          score += 0.5
+
+    # L4 成交量放大 (0~1.0)
+    vr = float(row["vol_r"]) if not np.isnan(row["vol_r"]) else 1.0
+    sc_obj = cfg.SYM_CFG.get(symbol, cfg.DEFAULT_SYM_CFG)
+    if   vr >= sc_obj.tp_mult * 0.65: score += 1.0  # 成交量达tp_mult 65%以上
+    elif vr >= 1.0:                    score += 0.4
+
+    # L5 ADX强度两档 (0~1.0)
+    adx = float(row["adx"]) if not np.isnan(row["adx"]) else 0.0
+    if adx >= cfg.ADX_MIN:       score += 0.5
+    if adx >= cfg.ADX_MIN * 1.5: score += 0.5
+
+    # L6 多TF确认 (0~1.0): 5m确认+0.5, 1h过滤+0.5
+    df5 = tf_data.get(cfg.TF_CONFIRM)
+    if df5 is not None and len(df5) >= 30:
+        r5 = df5.iloc[-2]
+        e9_5=float(r5["ema9"]); e21_5=float(r5["ema21"])
+        mh_5=float(r5["macd_h"]) if not np.isnan(r5["macd_h"]) else 0.0
+        if (lg and e9_5>e21_5 and mh_5>0) or (not lg and e9_5<e21_5 and mh_5<0):
+            score += 0.5
+
+    df1h = tf_data.get(cfg.TF_FILTER)
+    if df1h is not None and len(df1h) >= 30:
+        r1h = df1h.iloc[-2]
+        e21_h=float(r1h["ema21"]); e55_h=float(r1h["ema55"])
+        if (lg and e21_h>e55_h) or (not lg and e21_h<e55_h):
+            score += 0.5
+
+    return round(min(score, 7.0), 2)
+
+
+def check_raw_signal(symbol: str, df: pd.DataFrame, sc: object, side: str) -> Optional[dict]:
+    """基于cc/cu/cd的原始信号（Wilder逻辑，v7.1验证）"""
+    if df is None or len(df) < 220: return None
+    row = df.iloc[-2]; cur = df.iloc[-1]
     adx = float(row["adx"]) if not np.isnan(row["adx"]) else 0.0
     atr = float(row["atr"]) if not np.isnan(row["atr"]) else 0.0
-    ema = float(row["ema200"]) if not np.isnan(row["ema200"]) else 0.0
-    rsi = float(row["rsi"]) if not np.isnan(row["rsi"]) else 50.0
+    if adx < sc.adx_th or atr <= 0: return None
 
-    if adx < sym_cfg["adx_th"] or atr <= 0:
-        return None
-
-    cu    = int(row["cu"])
-    cd    = int(row["cd"])
-    cc    = float(row["cc"])
     entry = float(cur["close"])
+    cu=int(row["cu"]); cd=int(row["cd"]); cc=float(row["cc"])
 
     # 动态TP
-    tp_s = sym_cfg["tp_s"]
-    if adx >= cfg.DYNAMIC_TP_ADX_TH:
-        tp_s = tp_s * cfg.DYNAMIC_TP_MULT
+    tp_m = sc.tp_mult * (cfg.DYNAMIC_TP_MULT if adx >= cfg.DYNAMIC_TP_ADX_TH else 1.0)
 
-    # SHORT: 连涨≥sc + 累涨≥ccp + close<EMA200(趋势过滤)
-    if (cu >= sym_cfg["sc"] and cc >= sym_cfg["ccp"]
-            and (ema <= 0 or entry < ema)):  # EMA200方向过滤：SHORT只在價格下EMA200时开空
-        return {
-            "side":       "short",
-            "entry":      entry,
-            "sl":         entry + sym_cfg["sl_atr"] * atr,
-            "tp":         entry - tp_s * atr,
-            "adx":        round(adx, 1),
-            "atr":        round(atr, 8),
-            "rsi":        round(rsi, 1),
-            "tp_s":       round(tp_s, 2),
-            "dynamic_tp": adx >= cfg.DYNAMIC_TP_ADX_TH,
-            "cu": cu, "cd": cd, "cc": cc,
-            "bar_ts": int(row["ts"]),
-            "ema200": round(ema, 4),
-        }
+    if side == "short" and sc.allow_short and cu >= sc.sc and cc >= sc.ccp:
+        return dict(side="short", entry=entry,
+                    sl=round(entry + sc.sl_mult*atr, 8),
+                    tp=round(entry - tp_m*atr, 8),
+                    atr=atr, adx=adx, cu=cu, cd=cd, cc=cc,
+                    rsi=float(row["rsi"]) if not np.isnan(row["rsi"]) else 50.0,
+                    dynamic_tp=(adx>=cfg.DYNAMIC_TP_ADX_TH), bar_ts=int(row["ts"]))
 
-    # LONG: 连跌≥lc + 累跌≥ccp + close>EMA200
-    if (not sym_cfg["long_disabled"]
-            and cd >= sym_cfg["lc"]
-            and cc <= -sym_cfg["ccp"]
-            and entry > ema):
-        return {
-            "side":       "long",
-            "entry":      entry,
-            "sl":         entry - sym_cfg["sl_atr"] * atr,
-            "tp":         entry + tp_s * atr,
-            "adx":        round(adx, 1),
-            "atr":        round(atr, 8),
-            "rsi":        round(rsi, 1),
-            "tp_s":       round(tp_s, 2),
-            "dynamic_tp": adx >= cfg.DYNAMIC_TP_ADX_TH,
-            "cu": cu, "cd": cd, "cc": cc,
-            "bar_ts": int(row["ts"]),
-            "ema200": round(ema, 4),
-        }
+    ema200 = float(row["ema200"]) if not np.isnan(row["ema200"]) else 0.0
+    if side == "long" and sc.allow_long and cd >= sc.lc and cc <= -sc.ccp and entry > ema200:
+        return dict(side="long", entry=entry,
+                    sl=round(entry - sc.sl_mult*atr, 8),
+                    tp=round(entry + tp_m*atr, 8),
+                    atr=atr, adx=adx, cu=cu, cd=cd, cc=cc,
+                    rsi=float(row["rsi"]) if not np.isnan(row["rsi"]) else 50.0,
+                    dynamic_tp=(adx>=cfg.DYNAMIC_TP_ADX_TH), bar_ts=int(row["ts"]))
     return None
 
 
-def compute_signal_score(symbol: str,
-                          tf_data: Dict[str, Optional[pd.DataFrame]],
-                          sym_cfg: dict,
-                          primary_sig: dict) -> float:
-    """
-    多周期共振评分 (0~10):
-      ADX强度     0~3分
-      多周期共振  0~3分（60m趋势对齐+5m辅助信号）
-      RR比        0~2分
-      RSI极值     0~1分
-      动态TP      0~1分
-    """
-    score = 0.0
-    side  = primary_sig["side"]
+def scan_signal(symbol: str, tf_data: dict, wr_guard: "WRGuard") -> Optional[dict]:
+    """扫描所有周期，返回评分最高的信号（通过评分+WRGuard过滤）"""
+    sc = cfg.SYM_CFG.get(symbol, cfg.DEFAULT_SYM_CFG)
+    best = None; best_score = -1.0
 
-    # ── ADX强度 (0~3)
-    adx = primary_sig["adx"]
-    if adx >= 40:   score += 3.0
-    elif adx >= 30: score += 2.0
-    elif adx >= 20: score += 1.0
+    for tf in [cfg.TF_PRIMARY, cfg.TF_CONFIRM, cfg.TF_FAST]:
+        df = tf_data.get(tf)
+        if df is None or len(df) < 220: continue
+        row = df.iloc[-2]
+        for side in ("short","long"):
+            sig = check_raw_signal(symbol, df, sc, side)
+            if sig is None: continue
+            score = _score_6layer(row, tf_data, symbol, side)
+            if score < wr_guard.min_score: continue
+            rr = abs(sig["tp"]-sig["entry"]) / max(abs(sig["sl"]-sig["entry"]),1e-9)
+            if rr < wr_guard.min_rr: continue
+            if score > best_score:
+                best_score = score; best = {**sig, "tf":tf, "score":score, "rr":round(rr,2)}
 
-    # ── 60m趋势对齐 (0~1.5)
-    df60 = tf_data.get("1h")
-    if df60 is not None and len(df60) >= 50:
-        row60 = df60.iloc[-2]
-        ema60  = float(row60["ema200"]) if not np.isnan(row60["ema200"]) else 0
-        close60 = float(row60["close"])
-        adx60   = float(row60["adx"]) if not np.isnan(row60["adx"]) else 0
-        if side == "short" and close60 < ema60 and adx60 > 20:
-            score += 1.5   # 60m空头趋势对齐
-        elif side == "long" and close60 > ema60 and adx60 > 20:
-            score += 1.5   # 60m多头趋势对齐
-        elif adx60 > 15:
-            score += 0.5   # 60m有趋势但方向未对齐，部分得分
-
-    # ── 5m辅助信号共振 (0~1.5)
-    df5 = tf_data.get("5m")
-    if df5 is not None and len(df5) >= 50:
-        sig5 = _raw_signal(symbol, df5, sym_cfg)
-        if sig5 and sig5["side"] == side:
-            score += 1.5   # 5m信号方向一致
-        elif sig5:
-            score -= 0.5   # 5m信号反向，扣分
-
-    # ── RR比 (0~2)
-    entry = primary_sig["entry"]
-    tp    = primary_sig["tp"]
-    sl    = primary_sig["sl"]
-    sl_d  = abs(entry - sl)
-    tp_d  = abs(tp - entry)
-    rr    = tp_d / sl_d if sl_d > 0 else 0
-    if rr >= 2.0:   score += 2.0
-    elif rr >= 1.5: score += 1.0
-    elif rr >= 1.2: score += 0.5
-
-    # ── RSI极值加分 (0~1)
-    rsi = primary_sig["rsi"]
-    if side == "short" and rsi >= 65: score += 1.0
-    elif side == "long" and rsi <= 35: score += 1.0
-    elif side == "short" and rsi >= 55: score += 0.5
-    elif side == "long" and rsi <= 45: score += 0.5
-
-    # ── 动态TP加分 (0~1)
-    if primary_sig["dynamic_tp"]:
-        score += 1.0
-
-    return round(min(score, 10.0), 2)
+    return best
 
 
 # ══════════════════════════════════════════════════════════════
-#  § 4  持仓退出 + 追踪止损
+# §5  3段追踪止损
 # ══════════════════════════════════════════════════════════════
-def check_exit(pos: dict, high: float, low: float,
-               open_: float = None) -> Tuple[Optional[str], Optional[float]]:
-    """
-    检查是否触发 TP/SL/TIMEOUT/TRAILING
-    open价用于双触发时判断先后（v6.9修复）
-    """
-    side = pos["side"]
-    entry = pos["entry"]
-    sl    = pos["sl"]
-    tp    = pos["tp"]
-
-    if side == "short":
-        tp_hit = low  <= tp
-        sl_hit = high >= sl
-        if tp_hit and sl_hit:
-            if open_ is not None:
-                return ("SL", sl) if open_ >= entry else ("TP", tp)
-            return "SL", sl
-        if tp_hit: return "TP",  tp
-        if sl_hit: return "SL",  sl
-    else:
-        tp_hit = high >= tp
-        sl_hit = low  <= sl
-        if tp_hit and sl_hit:
-            if open_ is not None:
-                return ("SL", sl) if open_ <= entry else ("TP", tp)
-            return "SL", sl
-        if tp_hit: return "TP",  tp
-        if sl_hit: return "SL",  sl
-
-    # 超时强制平仓
-    if pos.get("bars_held", 0) >= cfg.MAX_HOLD_BARS:
-        cur_price = (high + low) / 2
-        return "TIMEOUT", cur_price
-
-    return None, None
-
-
-def update_trailing_stop(pos: dict, high: float, low: float) -> dict:
-    """
-    追踪止损：浮盈≥0.5×ATR时将SL移至保本方向
-    每次更新只收紧不放松
-    """
-    if not cfg.TRAILING_STOP_ENABLED:
-        return pos
+def trail_update(pos: dict, high: float, low: float) -> dict:
+    """3阶段追踪止损：init→保本→锁利→动态追踪（只升级不降级）"""
     atr   = pos.get("atr", 0)
-    entry = pos["entry"]
-    side  = pos["side"]
-    if atr <= 0:
-        return pos
+    entry = pos["entry"]; side = pos["side"]
+    if atr <= 0: return pos
 
-    # 计算当前浮盈
-    if side == "short":
-        float_pnl_atr = (entry - low) / atr   # 用low估算浮盈
-        if float_pnl_atr >= cfg.TRAILING_STOP_THRESH:
-            new_sl = low + cfg.TRAILING_STOP_DIST * atr
-            # 只收紧（new_sl < old_sl for short）
-            if new_sl < pos["sl"]:
-                pos = dict(pos)
-                pos["sl"] = round(new_sl, 8)
-                pos["trailing_active"] = True
-    else:
-        float_pnl_atr = (high - entry) / atr  # 用high估算浮盈
-        if float_pnl_atr >= cfg.TRAILING_STOP_THRESH:
-            new_sl = high - cfg.TRAILING_STOP_DIST * atr
-            # 只收紧（new_sl > old_sl for long）
-            if new_sl > pos["sl"]:
-                pos = dict(pos)
-                pos["sl"] = round(new_sl, 8)
-                pos["trailing_active"] = True
+    px  = low  if side=="short" else high
+    fav = ((entry-px)/atr if side=="short" else (px-entry)/atr)
+    stage = pos.get("trail_stage","init")
+    sl = pos["sl"]
+
+    if fav >= cfg.TRAIL_DYNAMIC_ATR:
+        new_sl = (px+cfg.TRAIL_DYNAMIC_DIST*atr if side=="short"
+                  else px-cfg.TRAIL_DYNAMIC_DIST*atr)
+        sl = (min(sl,new_sl) if side=="short" else max(sl,new_sl))
+        stage = "trail"
+
+    elif fav >= cfg.TRAIL_LOCK_ATR and stage in ("init","be"):
+        sl = (entry-0.3*atr if side=="short" else entry+0.3*atr)
+        stage = "lock"
+
+    elif fav >= cfg.TRAIL_BREAKEVEN_ATR and stage == "init":
+        sl = entry; stage = "be"
+
+    if sl != pos["sl"] or stage != pos.get("trail_stage","init"):
+        pos = dict(pos); pos["sl"] = round(sl,8); pos["trail_stage"] = stage
     return pos
 
 
-# ══════════════════════════════════════════════════════════════
-#  § 5  Kelly 仓位计算
-# ══════════════════════════════════════════════════════════════
-class KellySizer:
-    def __init__(self):
-        self._wins: deque[int]   = deque(maxlen=cfg.WR_GUARD_WINDOW)
-        self._pnls: deque[float] = deque(maxlen=cfg.WR_GUARD_WINDOW)
-
-    def record(self, pnl: float):
-        self._wins.append(1 if pnl > 0 else 0)
-        self._pnls.append(pnl)
-
-    def risk_amount(self, equity: float, sl_pct: float) -> float:
-        """返回本笔应投入风险金额(U)"""
-        if not cfg.KELLY_ENABLED or len(self._wins) < cfg.KELLY_MIN_TRADES:
-            return equity * cfg.RISK_PCT
-
-        wr    = sum(self._wins) / len(self._wins)
-        wins  = [p for p in self._pnls if p > 0]
-        loses = [p for p in self._pnls if p <= 0]
-        if not wins or not loses:
-            return equity * cfg.RISK_PCT
-
-        avg_w = sum(wins) / len(wins)
-        avg_l = abs(sum(loses) / len(loses))
-        if avg_l < 1e-9:
-            return equity * cfg.RISK_PCT
-
-        kelly = wr - (1 - wr) / (avg_w / avg_l)
-        risk  = max(0.005, min(cfg.KELLY_MAX_RISK, kelly * cfg.KELLY_FRACTION))
-        return equity * risk / max(sl_pct, 0.001)
-
-    @property
-    def wr(self) -> float:
-        return sum(self._wins) / max(len(self._wins), 1)
+def check_exit(pos: dict, high: float, low: float, open_: float=None) -> Tuple[Optional[str],Optional[float]]:
+    """检查TP/SL/TIMEOUT，双触发时用open_判断先后"""
+    side=pos["side"]; entry=pos["entry"]; sl=pos["sl"]; tp=pos["tp"]
+    if side=="short":
+        tp_hit=low<=tp; sl_hit=high>=sl
+        if tp_hit and sl_hit:
+            return ("SL",sl) if (open_ and open_>=entry) else ("TP",tp)
+        if tp_hit: return "TP",tp
+        if sl_hit: return "SL",sl
+    else:
+        tp_hit=high>=tp; sl_hit=low<=sl
+        if tp_hit and sl_hit:
+            return ("SL",sl) if (open_ and open_<=entry) else ("TP",tp)
+        if tp_hit: return "TP",tp
+        if sl_hit: return "SL",sl
+    if pos.get("bars_held",0) >= cfg.MAX_HOLD_BARS:
+        return "TIMEOUT",(high+low)/2
+    return None,None
 
 
 # ══════════════════════════════════════════════════════════════
-#  § 6  WinRate Guard
+# §6  弹性WRGuard
 # ══════════════════════════════════════════════════════════════
 class WRGuard:
     def __init__(self):
-        self._recent: deque[bool] = deque(maxlen=cfg.WR_GUARD_WINDOW)
-        self._active = False
+        self._buf: deque = deque(maxlen=cfg.WR_GUARD_WINDOW)
 
-    def record(self, is_win: bool):
-        self._recent.append(is_win)
-        n  = len(self._recent)
-        wr = sum(self._recent) / n if n > 0 else 1.0
-        if not self._active and wr < cfg.WR_GUARD_MIN_WR and n >= 10:
-            self._active = True
-            logger.warning(f"⚠️  WRGuard激活: 近{n}笔胜率={wr:.0%} < {cfg.WR_GUARD_MIN_WR:.0%}，提升RR要求→{cfg.WR_GUARD_MIN_RR}")
-        elif self._active and wr >= cfg.WR_GUARD_BOOST_WR:
-            self._active = False
-            logger.info(f"✅  WRGuard解除: 近{n}笔胜率={wr:.0%} ≥ {cfg.WR_GUARD_BOOST_WR:.0%}")
+    def record(self, pnl: float):
+        self._buf.append(1.0 if pnl>0 else 0.0)
 
     @property
-    def active(self) -> bool:
-        return self._active
+    def wr(self) -> float:
+        return sum(self._buf)/max(len(self._buf),1)
+
+    @property
+    def paused(self) -> bool:
+        return len(self._buf)>=5 and self.wr < cfg.WR_GUARD_PAUSE_WR
+
+    @property
+    def min_score(self) -> float:
+        if len(self._buf)<10: return cfg.SIGNAL_MIN_SCORE
+        w = self.wr
+        if w < cfg.WR_GUARD_MIN_WR:   return cfg.SIGNAL_MIN_SCORE * 1.4
+        if w > cfg.WR_GUARD_BOOST_WR: return cfg.SIGNAL_MIN_SCORE * 0.8
+        return cfg.SIGNAL_MIN_SCORE
 
     @property
     def min_rr(self) -> float:
-        return cfg.WR_GUARD_MIN_RR if self._active else cfg.MIN_RR_RATIO
+        return (cfg.WR_GUARD_MIN_RR
+                if len(self._buf)>=10 and self.wr < cfg.WR_GUARD_MIN_WR
+                else cfg.MIN_RR_RATIO)
+
+    def status(self) -> str:
+        n=len(self._buf)
+        if not n: return "冷启动"
+        w=self.wr
+        if self.paused: return f"⛔WR={w:.0%}({n})暂停开仓"
+        if w < cfg.WR_GUARD_MIN_WR: return f"⚠️WR={w:.0%}({n})高RR模式"
+        if w > cfg.WR_GUARD_BOOST_WR: return f"✅WR={w:.0%}({n})宽松模式"
+        return f"✅WR={w:.0%}({n})正常"
 
 
 # ══════════════════════════════════════════════════════════════
-#  § 7  相关性控制
+# §7  Kelly仓位
+# ══════════════════════════════════════════════════════════════
+class KellySizer:
+    def __init__(self):
+        self._wins: deque = deque(maxlen=cfg.WR_GUARD_WINDOW)
+        self._pnls: deque = deque(maxlen=cfg.WR_GUARD_WINDOW)
+
+    def record(self, pnl: float):
+        self._wins.append(1 if pnl>0 else 0)
+        self._pnls.append(pnl)
+
+    def risk_amount(self, equity: float, sl_pct: float) -> float:
+        denom = max(sl_pct, 0.001)
+        if not cfg.KELLY_ENABLED or len(self._wins)<cfg.KELLY_MIN_TRADES:
+            return equity*cfg.RISK_PCT
+        wr = sum(self._wins)/len(self._wins)
+        wins  = [p for p in self._pnls if p>0]
+        loses = [p for p in self._pnls if p<=0]
+        if not wins or not loses: return equity*cfg.RISK_PCT
+        aw = sum(wins)/len(wins); al = abs(sum(loses)/len(loses))
+        if al<1e-9: return equity*cfg.RISK_PCT
+        k = wr - (1-wr)/(aw/al)
+        r = max(0.005, min(cfg.KELLY_MAX_RISK, k*cfg.KELLY_FRACTION))
+        return equity*r/denom
+
+
+# ══════════════════════════════════════════════════════════════
+# §8  相关性过滤
 # ══════════════════════════════════════════════════════════════
 class CorrFilter:
-    """高相关品种同侧持仓不超过 MAX_CORR_SAME_SIDE"""
     def __init__(self, positions: dict):
         self._pos = positions
 
     def allow(self, symbol: str, side: str) -> bool:
-        if symbol not in cfg.HIGH_CORR_GROUP:
-            return True
-        same_side_count = sum(
-            1 for s, p in self._pos.items()
-            if s in cfg.HIGH_CORR_GROUP and p["side"] == side
-        )
-        if same_side_count >= cfg.MAX_CORR_SAME_SIDE:
-            logger.debug(f"[CorrFilter] {symbol} {side} 被拦截: 高相关组同侧已有{same_side_count}仓")
-            return False
-        return True
+        if symbol not in cfg.HIGH_CORR_GROUP: return True
+        n = sum(1 for s,p in self._pos.items()
+                if s in cfg.HIGH_CORR_GROUP and p["side"]==side)
+        return n < cfg.MAX_CORR_SAME_SIDE
 
 
 # ══════════════════════════════════════════════════════════════
-#  § 8  状态持久化（CRC校验防损坏，原子写）
+# §9  状态持久化（CRC校验+原子写）
 # ══════════════════════════════════════════════════════════════
-def _default_state() -> dict:
-    return {
-        "positions":    {},
-        "equity":       cfg.INITIAL_EQUITY,
-        "peak_equity":  cfg.INITIAL_EQUITY,
-        "max_drawdown": 0.0,
-        "day_loss":     0.0,
-        "day_date":     "",
-        "total_trades": 0,
-        "wins":         0,
-        "losses":       0,
-        "total_pnl":    0.0,
-        "streak":       0,
-        "daily_stats":  {},
-    }
-
-
 def _crc(data: dict) -> str:
-    raw = {k: v for k, v in data.items() if k != "_crc"}
-    return hashlib.md5(json.dumps(raw, sort_keys=True).encode()).hexdigest()
+    raw = {k:v for k,v in data.items() if k!="_crc"}
+    return hashlib.md5(json.dumps(raw,sort_keys=True).encode()).hexdigest()
 
+def _default_state() -> dict:
+    return dict(positions={}, equity=cfg.INITIAL_EQUITY,
+                peak_equity=cfg.INITIAL_EQUITY, max_drawdown=0.0,
+                day_loss=0.0, day_date="", total_trades=0,
+                wins=0, losses=0, total_pnl=0.0, streak=0, daily_stats={})
 
 def load_state() -> dict:
     p = Path(cfg.STATE_FILE)
     if p.exists():
         try:
-            raw = json.loads(p.read_text())
-            stored_crc = raw.pop("_crc", "")
-            if stored_crc and stored_crc != _crc(raw):
-                logger.warning("⚠️  state CRC不匹配，使用默认状态")
+            raw=json.loads(p.read_text()); stored=raw.pop("_crc","")
+            if stored and stored!=_crc(raw):
+                logger.warning("⚠️ state CRC不匹配，重置")
             else:
-                s = _default_state()
-                s.update(raw)
-                return s
+                s=_default_state(); s.update(raw); return s
         except Exception as e:
-            logger.warning(f"⚠️  状态加载失败({e})，使用默认状态")
+            logger.warning(f"⚠️ 状态加载失败({e})")
     return _default_state()
 
-
-def save_state(s: dict) -> None:
-    data = dict(s)
-    data["_crc"] = _crc(data)
-    tmp = Path(cfg.STATE_FILE).with_suffix(".tmp")
-    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2))
+def save_state(s: dict):
+    data=dict(s); data["_crc"]=_crc(data)
+    tmp=Path(cfg.STATE_FILE).with_suffix(".tmp")
+    tmp.write_text(json.dumps(data,ensure_ascii=False,indent=2))
     tmp.replace(Path(cfg.STATE_FILE))
 
-
-# ══════════════════════════════════════════════════════════════
-#  § 9  交易记录（JSONL流式追加）
-# ══════════════════════════════════════════════════════════════
-def append_trade(rec: dict) -> None:
-    with open(cfg.TRADE_LOG, "a", encoding="utf-8") as f:
-        f.write(json.dumps(rec, ensure_ascii=False) + "\n")
-
+def append_trade(rec: dict):
+    with open(cfg.TRADE_LOG,"a",encoding="utf-8") as f:
+        f.write(json.dumps(rec,ensure_ascii=False)+"\n")
 
 def load_trades() -> list:
-    p = Path(cfg.TRADE_LOG)
-    if not p.exists():
-        return []
-    trades = []
+    p=Path(cfg.TRADE_LOG)
+    if not p.exists(): return []
+    trades=[]
     for line in p.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
+        line=line.strip()
         if line:
-            try:
-                trades.append(json.loads(line))
-            except Exception:
-                pass
+            try: trades.append(json.loads(line))
+            except: pass
     return trades
 
-
-# ══════════════════════════════════════════════════════════════
-#  § 10 统计辅助
-# ══════════════════════════════════════════════════════════════
-def update_stats(state: dict, net_pnl: float) -> None:
-    """更新连胜连败 / 最大回撤 / 每日统计"""
-    state["streak"] = (max(state["streak"], 0) + 1) if net_pnl > 0 \
-                      else (min(state["streak"], 0) - 1)
-
+def update_stats(state: dict, net_pnl: float):
+    state["streak"] = (max(state["streak"],0)+1 if net_pnl>0
+                       else min(state["streak"],0)-1)
     if state["equity"] > state["peak_equity"]:
         state["peak_equity"] = state["equity"]
-    dd = (state["peak_equity"] - state["equity"]) / state["peak_equity"] * 100
-    if dd > state["max_drawdown"]:
-        state["max_drawdown"] = dd
-
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    dd=(state["peak_equity"]-state["equity"])/state["peak_equity"]*100
+    if dd > state["max_drawdown"]: state["max_drawdown"]=dd
+    today=datetime.now(timezone.utc).strftime("%Y-%m-%d")
     if today not in state["daily_stats"]:
-        state["daily_stats"][today] = {"pnl": 0.0, "trades": 0, "wins": 0}
+        state["daily_stats"][today]={"pnl":0.0,"trades":0,"wins":0}
     state["daily_stats"][today]["pnl"]    += net_pnl
     state["daily_stats"][today]["trades"] += 1
-    if net_pnl > 0:
-        state["daily_stats"][today]["wins"] += 1
+    if net_pnl>0: state["daily_stats"][today]["wins"]+=1
 
 
-def print_summary(state: dict, trades: list) -> None:
-    total = state["wins"] + state["losses"]
-    wr    = state["wins"] / total * 100 if total > 0 else 0.0
-    logger.info("═" * 72)
+# ══════════════════════════════════════════════════════════════
+# §10  汇总打印
+# ══════════════════════════════════════════════════════════════
+def print_summary(state: dict, trades: list):
+    total=state["wins"]+state["losses"]
+    wr=state["wins"]/total*100 if total>0 else 0
+    logger.info("═"*70)
     logger.info(f"  白夜交易系统 {VERSION} — 阶段汇总")
-    logger.info(f"  完成: {total}笔 | 胜率: {wr:.1f}% | 总PnL: {state['total_pnl']:+.4f}U")
-    logger.info(f"  权益: {cfg.INITIAL_EQUITY}U → {state['equity']:.4f}U "
+    logger.info(f"  完成:{total}笔 WR:{wr:.1f}% PnL:{state['total_pnl']:+.4f}U")
+    logger.info(f"  权益:{cfg.INITIAL_EQUITY}U→{state['equity']:.4f}U "
                 f"({(state['equity']/cfg.INITIAL_EQUITY-1)*100:+.2f}%)")
-    logger.info(f"  最大回撤: {state['max_drawdown']:.1f}% | 连胜/连败: {state['streak']:+d}")
+    logger.info(f"  最大回撤:{state['max_drawdown']:.1f}% 连胜/败:{state['streak']:+d}")
     if trades:
-        w_pnl = [t["net_pnl"] for t in trades if t["net_pnl"] > 0]
-        l_pnl = [t["net_pnl"] for t in trades if t["net_pnl"] < 0]
-        avg_w = sum(w_pnl) / len(w_pnl) if w_pnl else 0
-        avg_l = sum(l_pnl) / len(l_pnl) if l_pnl else 0
-        pf = (avg_w * len(w_pnl)) / (abs(avg_l) * len(l_pnl)) \
-             if l_pnl and avg_l != 0 else 0
-        logger.info(f"  平均盈: {avg_w:+.4f}U | 平均亏: {avg_l:+.4f}U | PF={pf:.2f}")
-        # 多周期分布
-        by_tf: Dict[str, list] = {}
-        for t in trades:
-            tf = t.get("tf", "15m")
-            by_tf.setdefault(tf, []).append(t["net_pnl"])
-        for tf, pnls in sorted(by_tf.items()):
-            tw = sum(1 for p in pnls if p > 0)
+        w=[t["net_pnl"] for t in trades if t["net_pnl"]>0]
+        l=[t["net_pnl"] for t in trades if t["net_pnl"]<0]
+        aw=sum(w)/len(w) if w else 0; al=sum(l)/len(l) if l else 0
+        pf=(sum(w)/abs(sum(l))) if l else 0
+        logger.info(f"  均盈:{aw:+.4f}U 均亏:{al:+.4f}U PF={pf:.2f}")
+        by_tf: Dict[str,list]={}
+        for t in trades: by_tf.setdefault(t.get("tf","15m"),[]).append(t["net_pnl"])
+        for tf,pnls in sorted(by_tf.items()):
+            tw=sum(1 for p in pnls if p>0)
             logger.info(f"    [{tf}] {len(pnls)}笔 WR={tw/len(pnls)*100:.0f}% PnL={sum(pnls):+.3f}U")
     if state.get("daily_stats"):
-        logger.info("  ── 每日收益 ──")
-        for date, ds in sorted(state["daily_stats"].items()):
-            dwr = ds["wins"] / ds["trades"] * 100 if ds["trades"] > 0 else 0
-            logger.info(f"    {date}: PnL={ds['pnl']:+.3f}U WR={dwr:.0f}% "
-                        f"({ds['wins']}/{ds['trades']})")
-    logger.info("═" * 72)
+        logger.info("  每日:")
+        for date,ds in sorted(state["daily_stats"].items()):
+            dwr=ds["wins"]/ds["trades"]*100 if ds["trades"]>0 else 0
+            logger.info(f"    {date}: PnL={ds['pnl']:+.3f}U WR={dwr:.0f}%({ds['wins']}/{ds['trades']})")
+    logger.info("═"*70)
 
 
 # ══════════════════════════════════════════════════════════════
-#  § 11 主循环
+# §11  主循环
 # ══════════════════════════════════════════════════════════════
-def main() -> None:
+def main():
     global _running
-
-    # 写PID
     Path(cfg.PID_FILE).write_text(str(os.getpid()))
-
-    state  = load_state()
-    trades = load_trades()
-
-    # 初始化辅助器
+    state   = load_state()
+    trades  = load_trades()
     kelly   = KellySizer()
-    wr_guard = WRGuard()
+    wg      = WRGuard()
+    funding = FundingFilter()
 
-    # 用历史trades预热Kelly/WRGuard
+    # 预热Kelly/WRGuard
     for t in trades[-cfg.WR_GUARD_WINDOW:]:
-        kelly.record(t["net_pnl"])
-        wr_guard.record(t["net_pnl"] > 0)
+        kelly.record(t["net_pnl"]); wg.record(t["net_pnl"])
 
-    # 重置当日熔断
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     if state.get("day_date") != today:
-        state["day_loss"] = 0.0
-        state["day_date"] = today
+        state["day_loss"]=0.0; state["day_date"]=today
 
-    logger.info("═" * 72)
+    logger.info("═"*70)
     logger.info(f"  白夜交易系统 {VERSION} 启动  模式={cfg.RUN_MODE}")
     logger.info(f"  品种({len(cfg.SYMBOLS)}): {cfg.SYMBOLS}")
-    logger.info(f"  时间周期: {cfg.TIMEFRAMES} | 主周期={cfg.TF_PRIMARY}")
+    logger.info(f"  周期:{cfg.TIMEFRAMES} 主={cfg.TF_PRIMARY} 确认={cfg.TF_CONFIRM} 过滤={cfg.TF_FILTER}")
     logger.info(f"  资金={cfg.INITIAL_EQUITY}U RISK={cfg.RISK_PCT*100:.0f}% FEE={cfg.FEE*10000:.1f}bps")
     logger.info(f"  Kelly={'ON' if cfg.KELLY_ENABLED else 'OFF'} "
-                f"WRGuard={cfg.WR_GUARD_MIN_WR:.0%} "
-                f"TrailingStop={'ON' if cfg.TRAILING_STOP_ENABLED else 'OFF'}")
-    logger.info(f"  动态TP: ADX≥{cfg.DYNAMIC_TP_ADX_TH}→TP×{cfg.DYNAMIC_TP_MULT}")
-    logger.info(f"  已完成={state['wins']+state['losses']}笔 "
+                f"WRGuard={cfg.WR_GUARD_MIN_WR:.0%}/{cfg.WR_GUARD_BOOST_WR:.0%} "
+                f"Funding过滤=ON TrailStop=3段")
+    logger.info(f"  评分门槛={cfg.SIGNAL_MIN_SCORE} 最低RR={cfg.MIN_RR_RATIO}")
+    logger.info(f"  历史:{state['wins']+state['losses']}笔 "
                 f"权益={state['equity']:.2f}U 回撤={state['max_drawdown']:.1f}%")
-    logger.info("═" * 72)
+    logger.info("═"*70)
 
-    cooldown: Dict[str, int] = {}   # sym → 上次开仓poll_count
-    last_bar: Dict[str, int] = {}   # sym → 上次信号bar_ts
+    cooldown: Dict[str,int] = {}
+    last_bar: Dict[str,int] = {}
     poll_count = 0
 
     while _running:
@@ -683,245 +567,149 @@ def main() -> None:
             now   = datetime.now(timezone.utc)
             today = now.strftime("%Y-%m-%d")
 
-            # 日期切换
             if state.get("day_date") != today:
-                state["day_loss"] = 0.0
-                state["day_date"] = today
-                logger.info("━━ 新的一天，日熔断计数已重置 ━━")
+                state["day_loss"]=0.0; state["day_date"]=today
+                logger.info("━━ 新的一天，日熔断重置 ━━")
 
             # 日熔断
-            if state["day_loss"] >= state["equity"] * cfg.DAILY_LOSS_PCT:
-                logger.warning(
-                    f"⛔ 日熔断! 今日亏损={state['day_loss']:.4f}U"
-                    f" ≥ {cfg.DAILY_LOSS_PCT*100:.0f}%×{state['equity']:.2f}U，等待60s"
-                )
-                time.sleep(60)
-                continue
+            if state["day_loss"] >= state["equity"]*cfg.DAILY_LOSS_PCT:
+                logger.warning(f"⛔ 日熔断! 亏损={state['day_loss']:.4f}U 等待60s")
+                time.sleep(60); continue
 
-            # ── 1. 拉取所有品种多周期K线
-            all_tf_data: Dict[str, Dict[str, Optional[pd.DataFrame]]] = {}
-            for sym in cfg.SYMBOLS:
-                all_tf_data[sym] = fetch_multi_tf(sym)
+            # 资金费率刷新（每15min自动）
+            funding.refresh()
 
-            # ── 2. 检查持仓退出 + 追踪止损
+            # 拉取所有品种多周期K线
+            all_tf: Dict[str, Dict] = {sym: fetch_multi_tf(sym) for sym in cfg.SYMBOLS}
+
+            # ── 检查持仓退出+追踪止损 ────────────────────────
             for sym in list(state["positions"].keys()):
                 pos  = state["positions"][sym]
                 tf   = pos.get("tf", cfg.TF_PRIMARY)
-                df   = all_tf_data.get(sym, {}).get(tf)
-                if df is None:
-                    continue
+                df   = all_tf.get(sym,{}).get(tf)
+                if df is None: continue
+                cur  = df.iloc[-1]
+                h,l,o = float(cur["high"]),float(cur["low"]),float(cur["open"])
+                pos["bars_held"] = pos.get("bars_held",0)+1
 
-                cur   = df.iloc[-1]
-                high  = float(cur["high"])
-                low   = float(cur["low"])
-                open_ = float(cur["open"])
-
-                pos["bars_held"] = pos.get("bars_held", 0) + 1
-
-                # 追踪止损更新
-                pos = update_trailing_stop(pos, high, low)
+                # 追踪止损（3段）
+                pos = trail_update(pos, h, l)
                 state["positions"][sym] = pos
 
-                result, exit_price = check_exit(pos, high, low, open_)
-                if result is None:
-                    continue
+                result, exit_px = check_exit(pos, h, l, o)
+                if result is None: continue
 
                 # 结算
-                qty      = pos["qty"]
-                raw_pnl  = ((pos["entry"] - exit_price) * qty if pos["side"] == "short"
-                            else (exit_price - pos["entry"]) * qty)
-                fee_cost = (pos["entry"] + exit_price) * qty * cfg.FEE
-                net_pnl  = raw_pnl - fee_cost
+                qty     = pos["qty"]
+                raw_pnl = ((pos["entry"]-exit_px)*qty if pos["side"]=="short"
+                           else (exit_px-pos["entry"])*qty)
+                fee     = (pos["entry"]+exit_px)*qty*cfg.FEE
+                net_pnl = raw_pnl - fee
 
                 state["equity"]      += net_pnl
-                state["total_pnl"]    = state.get("total_pnl", 0.0) + net_pnl
-                state["total_trades"] = state.get("total_trades", 0) + 1
-
-                if net_pnl > 0:
-                    state["wins"] = state.get("wins", 0) + 1
+                state["total_pnl"]    = state.get("total_pnl",0.0)+net_pnl
+                state["total_trades"] = state.get("total_trades",0)+1
+                if net_pnl>0: state["wins"]=state.get("wins",0)+1
                 else:
-                    state["losses"]    = state.get("losses", 0) + 1
-                    state["day_loss"] += abs(net_pnl)
+                    state["losses"]=state.get("losses",0)+1
+                    state["day_loss"]+=abs(net_pnl)
 
                 update_stats(state, net_pnl)
-                kelly.record(net_pnl)
-                wr_guard.record(net_pnl > 0)
-
+                kelly.record(net_pnl); wg.record(net_pnl)
                 del state["positions"][sym]
 
-                rec = {
-                    "no":           state["total_trades"],
-                    "sym":          sym,
-                    "tf":           tf,
-                    "side":         pos["side"],
-                    "entry":        round(pos["entry"], 8),
-                    "exit":         round(exit_price, 8),
-                    "qty":          round(qty, 6),
-                    "notional":     round(pos.get("notional", 0), 4),
-                    "result":       result,
-                    "net_pnl":      round(net_pnl, 6),
-                    "fee":          round(fee_cost, 6),
-                    "bars_held":    pos.get("bars_held", 0),
-                    "score":        pos.get("score", 0),
-                    "adx":          pos.get("adx"),
-                    "atr":          pos.get("atr"),
-                    "tp_s":         pos.get("tp_s"),
-                    "dynamic_tp":   pos.get("dynamic_tp", False),
-                    "trailing":     pos.get("trailing_active", False),
-                    "cu":  pos.get("cu"), "cd": pos.get("cd"), "cc": pos.get("cc"),
-                    "open_time":    pos["open_time"],
-                    "close_time":   now.isoformat(),
-                    "equity_after": round(state["equity"], 6),
-                }
-                trades.append(rec)
-                append_trade(rec)
-                save_state(state)
+                rec = dict(no=state["total_trades"], sym=sym, tf=tf,
+                           side=pos["side"], entry=round(pos["entry"],8),
+                           exit=round(exit_px,8), qty=round(qty,6),
+                           result=result, net_pnl=round(net_pnl,6),
+                           fee=round(fee,6), bars_held=pos.get("bars_held",0),
+                           score=pos.get("score",0), adx=pos.get("adx"),
+                           atr=pos.get("atr"), rr=pos.get("rr",0),
+                           trail_stage=pos.get("trail_stage","init"),
+                           dynamic_tp=pos.get("dynamic_tp",False),
+                           open_time=pos["open_time"],
+                           close_time=now.isoformat(),
+                           equity_after=round(state["equity"],6))
+                trades.append(rec); append_trade(rec); save_state(state)
 
-                total = state["wins"] + state["losses"]
-                wr    = state["wins"] / total * 100 if total > 0 else 0
-                emoji = "✅" if net_pnl > 0 else "❌"
-                trail = "🔒TRL" if rec["trailing"] else ""
-                dtp   = "🚀DTP" if rec["dynamic_tp"] else ""
-                streak_s = f"连{'胜' if state['streak']>0 else '败'}{abs(state['streak'])}"
+                total=state["wins"]+state["losses"]
+                wr=state["wins"]/total*100 if total>0 else 0
+                icon="✅" if net_pnl>0 else "❌"
+                stk=f"连{'胜' if state['streak']>0 else '败'}{abs(state['streak'])}"
+                ts=pos.get("trail_stage","init")
                 logger.info(
-                    f"{emoji} #{state['total_trades']:3d} [{tf}] {sym} {pos['side'].upper()} "
-                    f"{result}{trail}{dtp} | "
-                    f"入={pos['entry']:.5g} 出={exit_price:.5g} PnL={net_pnl:+.5f}U | "
+                    f"{icon} #{state['total_trades']:3d} [{tf}] {sym} "
+                    f"{pos['side'].upper()} {result} trail={ts} | "
+                    f"入={pos['entry']:.5g} 出={exit_px:.5g} PnL={net_pnl:+.5f}U | "
                     f"WR={wr:.1f}%({state['wins']}/{total}) "
-                    f"净值={state['equity']:.4f}U {streak_s}"
+                    f"净值={state['equity']:.4f}U {stk} {wg.status()}"
                 )
 
-            # ── 3. 扫描新信号（多周期 + 评分过滤）
-            if len(state["positions"]) < cfg.MAX_OPEN_POSITIONS:
+            # ── 扫描新信号 ───────────────────────────────────
+            if not wg.paused and len(state["positions"])<cfg.MAX_OPEN_POSITIONS:
                 corr = CorrFilter(state["positions"])
-
                 for sym in cfg.SYMBOLS:
-                    if sym in state["positions"]:
-                        continue
-                    if len(state["positions"]) >= cfg.MAX_OPEN_POSITIONS:
-                        break
+                    if sym in state["positions"]: continue
+                    if len(state["positions"])>=cfg.MAX_OPEN_POSITIONS: break
+                    if funding.skip(sym):
+                        logger.debug(f"[Funding] {sym} 跳过"); continue
 
-                    tf_data = all_tf_data.get(sym, {})
-                    sym_cfg = cfg.SYMBOL_CONFIGS[sym]
+                    ck = f"{sym}"
+                    if poll_count - cooldown.get(ck,0) < cfg.COOLDOWN_BARS: continue
 
-                    # 优先主周期15m，再检查5m和3m
-                    best_sig  = None
-                    best_tf   = None
-                    best_score = -1.0
+                    sig = scan_signal(sym, all_tf.get(sym,{}), wg)
+                    if sig is None: continue
 
-                    for tf in [cfg.TF_PRIMARY, cfg.TF_FAST, "3m"]:
-                        # 冷却期：同品种同tf
-                        ck = f"{sym}_{tf}"
-                        if poll_count - cooldown.get(ck, 0) < cfg.COOLDOWN_BARS:
-                            continue
+                    # 同根K线去重
+                    lk = f"{sym}_{sig['tf']}"
+                    if last_bar.get(lk)==sig.get("bar_ts"): continue
 
-                        df = tf_data.get(tf)
-                        sig = _raw_signal(sym, df, sym_cfg)
-                        if sig is None:
-                            continue
+                    if not corr.allow(sym, sig["side"]): continue
 
-                        # 同根K线去重
-                        lk = f"{sym}_{tf}"
-                        if last_bar.get(lk) == sig["bar_ts"]:
-                            continue
-
-                        # 计算多周期评分
-                        score = compute_signal_score(sym, tf_data, sym_cfg, sig)
-
-                        # WRGuard模式下要求更高RR
-                        entry = sig["entry"]
-                        sl    = sig["sl"]
-                        tp    = sig["tp"]
-                        rr    = abs(tp - entry) / max(abs(entry - sl), 1e-9)
-                        if rr < wr_guard.min_rr:
-                            logger.debug(f"[{sym}/{tf}] RR={rr:.2f} < WRGuard要求{wr_guard.min_rr:.1f}，跳过")
-                            continue
-
-                        if score > best_score:
-                            best_score = score
-                            best_sig   = sig
-                            best_tf    = tf
-
-                    if best_sig is None:
-                        continue
-
-                    # 最低评分过滤
-                    if best_score < cfg.SIGNAL_MIN_SCORE:
-                        continue
-
-                    # 相关性过滤
-                    if not corr.allow(sym, best_sig["side"]):
-                        continue
-
-                    # Kelly仓位计算
-                    sl_pct = abs(best_sig["entry"] - best_sig["sl"]) / best_sig["entry"]
+                    # Kelly仓位
+                    sl_pct = abs(sig["entry"]-sig["sl"])/max(sig["entry"],1e-9)
                     risk_u = kelly.risk_amount(state["equity"], sl_pct)
-                    sl_d   = abs(best_sig["entry"] - best_sig["sl"])
-                    if sl_d <= 0:
-                        continue
-                    qty      = risk_u / sl_d
-                    notional = qty * best_sig["entry"]
+                    sl_d   = abs(sig["entry"]-sig["sl"])
+                    if sl_d<=0: continue
+                    qty      = risk_u/sl_d
+                    notional = qty*sig["entry"]
+                    if notional<cfg.MIN_NOTIONAL: continue
+                    if notional>state["equity"]*0.5:
+                        qty=state["equity"]*0.5/sig["entry"]; notional=qty*sig["entry"]
 
-                    # 名义值保护
-                    if notional < cfg.MIN_NOTIONAL:
-                        continue
-                    if notional > state["equity"] * 0.5:
-                        qty      = state["equity"] * 0.5 / best_sig["entry"]
-                        notional = qty * best_sig["entry"]
-
-                    # 记录开仓
-                    ck = f"{sym}_{best_tf}"
-                    lk = f"{sym}_{best_tf}"
-                    last_bar[lk]  = best_sig["bar_ts"]
-                    cooldown[ck]  = poll_count
-
-                    state["positions"][sym] = {
-                        "side":         best_sig["side"],
-                        "tf":           best_tf,
-                        "entry":        best_sig["entry"],
-                        "sl":           best_sig["sl"],
-                        "tp":           best_sig["tp"],
-                        "qty":          qty,
-                        "notional":     round(notional, 4),
-                        "score":        best_score,
-                        "adx":          best_sig["adx"],
-                        "atr":          best_sig["atr"],
-                        "rsi":          best_sig["rsi"],
-                        "tp_s":         best_sig["tp_s"],
-                        "dynamic_tp":   best_sig["dynamic_tp"],
-                        "cu":           best_sig["cu"],
-                        "cd":           best_sig["cd"],
-                        "cc":           best_sig["cc"],
-                        "bar_ts":       best_sig["bar_ts"],
-                        "bars_held":    0,
-                        "trailing_active": False,
-                        "open_time":    now.isoformat(),
-                    }
-                    corr = CorrFilter(state["positions"])  # 更新相关性检查器
+                    last_bar[lk]=sig.get("bar_ts"); cooldown[ck]=poll_count
+                    state["positions"][sym] = dict(
+                        side=sig["side"], tf=sig["tf"],
+                        entry=sig["entry"], sl=sig["sl"], tp=sig["tp"],
+                        qty=qty, notional=round(notional,4),
+                        score=sig["score"], adx=sig["adx"], atr=sig["atr"],
+                        rsi=sig.get("rsi",50), rr=sig["rr"],
+                        dynamic_tp=sig["dynamic_tp"],
+                        cu=sig["cu"], cd=sig["cd"], cc=sig["cc"],
+                        bar_ts=sig.get("bar_ts"), bars_held=0,
+                        trail_stage="init", open_time=now.isoformat(),
+                    )
+                    corr = CorrFilter(state["positions"])
                     save_state(state)
 
-                    total = state["wins"] + state["losses"]
-                    dtp_s = f" 🚀DTP×{best_sig['tp_s']}" if best_sig["dynamic_tp"] else ""
-                    wr_s  = " ⚠️WRG" if wr_guard.active else ""
+                    dtp=" 🚀DTP" if sig["dynamic_tp"] else ""
                     logger.info(
-                        f"🔔 #{total+len(state['positions']):3d} "
-                        f"[{best_tf}] {sym} {best_sig['side'].upper()}"
-                        f"{dtp_s}{wr_s} 评分={best_score:.1f} | "
-                        f"入={best_sig['entry']:.5g} "
-                        f"TP={best_sig['tp']:.5g} SL={best_sig['sl']:.5g} | "
-                        f"ADX={best_sig['adx']} RSI={best_sig['rsi']} "
-                        f"notional={notional:.1f}U"
+                        f"🔔 #{state['total_trades']+len(state['positions']):3d} "
+                        f"[{sig['tf']}] {sym} {sig['side'].upper()}{dtp} "
+                        f"评分={sig['score']:.1f} RR={sig['rr']:.2f} | "
+                        f"入={sig['entry']:.5g} TP={sig['tp']:.5g} SL={sig['sl']:.5g} | "
+                        f"ADX={sig['adx']:.0f} RSI={sig.get('rsi',0):.0f} "
+                        f"notional={notional:.1f}U {wg.status()}"
                     )
 
-            # ── 4. 每轮状态摘要
-            total = state["wins"] + state["losses"]
-            wr    = state["wins"] / total * 100 if total > 0 else 0.0
-            pos_str = (
-                " | ".join(
-                    f"{s}({v['side'].upper()}/{v.get('tf','?')}@{v['entry']:.4g}"
-                    f" sc={v.get('score',0):.1f})"
-                    for s, v in state["positions"].items()
-                ) or "无持仓"
+            # ── 每轮状态摘要 ─────────────────────────────────
+            total=state["wins"]+state["losses"]
+            wr=state["wins"]/total*100 if total>0 else 0
+            pos_str=(
+                " | ".join(f"{s}({v['side'].upper()}/{v.get('tf','?')}"
+                           f" sc={v.get('score',0):.1f} ts={v.get('trail_stage','init')})"
+                           for s,v in state["positions"].items())
+                or "无持仓"
             )
             logger.info(
                 f"[{now.strftime('%H:%M')} #{poll_count}] "
@@ -929,58 +717,42 @@ def main() -> None:
                 f"净值={state['equity']:.2f}U 回撤={state['max_drawdown']:.1f}% | {pos_str}"
             )
 
-            # 无持仓时显示各品种信号距离（主周期15m）
+            # 无持仓显示各品种信号距离
             if not state["positions"]:
                 for sym in cfg.SYMBOLS:
-                    df = all_tf_data.get(sym, {}).get(cfg.TF_PRIMARY)
-                    if df is None or len(df) < 5:
-                        continue
-                    row = df.iloc[-2]
-                    adx = float(row["adx"]) if not np.isnan(row["adx"]) else 0.0
-                    cu  = int(row["cu"]); cd = int(row["cd"])
-                    cc  = float(row["cc"]) * 100
-                    sc  = cfg.SYMBOL_CONFIGS[sym]
-                    short_ok = cu >= sc["sc"] and cc/100 >= sc["ccp"] and adx >= sc["adx_th"]
-                    long_ok  = (not sc["long_disabled"] and cd >= sc["lc"]
-                                and cc/100 <= -sc["ccp"] and adx >= sc["adx_th"])
-                    s_str = "✅SHORT" if short_ok else \
-                        f"SHORT[cu{cu}/{sc['sc']} cc{cc:.2f}%/{sc['ccp']*100:.2f}% adx{adx:.0f}/{sc['adx_th']}]"
-                    l_str = "LONG禁" if sc["long_disabled"] else (
-                        "✅LONG" if long_ok else
-                        f"LONG[cd{cd}/{sc['lc']} cc{cc:.2f}%/{-sc['ccp']*100:.2f}% adx{adx:.0f}/{sc['adx_th']}]"
-                    )
-                    logger.info(f"  {sym:10s} ADX={adx:4.0f} | {s_str} | {l_str}")
+                    df=all_tf.get(sym,{}).get(cfg.TF_PRIMARY)
+                    if df is None or len(df)<5: continue
+                    row=df.iloc[-2]
+                    sc=cfg.SYM_CFG.get(sym,cfg.DEFAULT_SYM_CFG)
+                    adx=float(row["adx"]) if not np.isnan(row["adx"]) else 0
+                    cu=int(row["cu"]); cd=int(row["cd"]); cc=float(row["cc"])*100
+                    short_ok=(sc.allow_short and cu>=sc.sc and cc/100>=sc.ccp and adx>=sc.adx_th)
+                    long_ok=(sc.allow_long and cd>=sc.lc and cc/100<=-sc.ccp and adx>=sc.adx_th)
+                    s_s="✅SHORT" if short_ok else f"SHORT[cu{cu}/{sc.sc} cc{cc:.2f}%/{sc.ccp*100:.2f}% adx{adx:.0f}/{sc.adx_th}]"
+                    l_s="LONG禁" if not sc.allow_long else ("✅LONG" if long_ok else
+                        f"LONG[cd{cd}/{sc.lc} cc{cc:.2f}%/{-sc.ccp*100:.2f}% adx{adx:.0f}/{sc.adx_th}]")
+                    logger.info(f"  {sym:10s} ADX={adx:4.0f} | {s_s} | {l_s}")
 
-            # 每20轮输出性能摘要
-            if poll_count % 20 == 0 and total > 0:
-                elapsed_h = poll_count * cfg.POLL_SECS / 3600
-                rate = total / elapsed_h if elapsed_h > 0 else 0
-                logger.info(
-                    f"╪ 性能摘要 #{poll_count} ╪ "
-                    f"运行{elapsed_h:.1f}h | {rate:.1f}笔/h | "
-                    f"Kelly WR={kelly.wr:.0%} | WRGuard={'激活' if wr_guard.active else '正常'}"
-                )
+            if poll_count%20==0 and total>0:
+                h=poll_count*cfg.POLL_SECS/3600
+                logger.info(f"╪ 性能 #{poll_count} 运行{h:.1f}h | {total/max(h,0.01):.1f}笔/h | "
+                            f"Kelly WR={kelly.risk_amount(state['equity'],0.01)/state['equity']*100:.1f}% | "
+                            f"{wg.status()}")
 
             time.sleep(cfg.POLL_SECS)
 
         except KeyboardInterrupt:
             break
         except Exception as e:
-            logger.error(f"主循环异常(轮次{poll_count}): {e}", exc_info=True)
+            logger.error(f"主循环异常(#{poll_count}): {e}", exc_info=True)
             time.sleep(30)
 
-    # ── 收尾
-    logger.info("引擎退出，保存最终状态...")
+    logger.info("引擎退出，保存状态...")
     save_state(state)
     print_summary(state, trades)
-    try:
-        Path(cfg.PID_FILE).unlink(missing_ok=True)
-    except Exception:
-        pass
+    try: Path(cfg.PID_FILE).unlink(missing_ok=True)
+    except: pass
 
 
-# ══════════════════════════════════════════════════════════════
-#  入口
-# ══════════════════════════════════════════════════════════════
 if __name__ == "__main__":
     main()
