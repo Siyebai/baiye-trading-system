@@ -115,32 +115,36 @@ class SymCfg:
     allow_long:  bool  = True
     allow_short: bool  = True
 
-# ─── 参数来源：validate_realdata.py 180天真实数据验证（2026-05-13）───
-# 验证方法：backtest_engine_v3 + Maker手续费(0.02%) + Walk-Forward
-# 各品种 WR / PF（Maker费后）:
-#   BTCUSDT  sc=4 adx=22  WR=63.8% PF=1.27 月均+1.4%  PASS ✅
-#   BNBUSDT  sc=5 adx=15  WR=70.0% PF=1.61 月均+0.6%  PASS ✅
-#   LINKUSDT sc=7 adx=25  WR=58.3% PF=1.02 月均+0.03% PASS ✅（长期用LONG禁用）
-#   POLUSDT  sc=5 adx=25  WR=65.2% PF=1.30 月均+1.5%  PASS ✅
-#   SOLUSDT  sc=5 adx=30  WR=54.1% PF=0.98 月均-0.2%  WARN ⚠️（接近盈亏平衡）
-#   ETHUSDT  暂停 — 180天各参数组合均无法盈利，待市场结构改善后重入
+# ─── 参数来源：optimize_params.py v2 真实数据网格优化（2026-05-14）───
+# 数据源：Binance API 实时拉取 1000根 15m K线
+# 优化方法：网格搜索（1920组/品种）+ 综合评分（WR×0.55+PF×0.3+n×0.15）
+# 过滤规则：WR≥50%、n≥12、PF≥1.0 方可选入（BNB/POL PF<1，暂停开仓）
+# 各品种最优参数（2026-05-14 实时验证）:
+#   BTCUSDT  sc=3 adx=15  WR=82.4% PF=1.45 n=68  ✅
+#   ETHUSDT  sc=5 adx=15  WR=85.7% PF=1.69 n=63  ✅ 重新启用
+#   SOLUSDT  sc=6 adx=25  WR=92.3% PF=5.16 n=13  ✅
+#   LINKUSDT sc=4 adx=15  WR=79.4% PF=1.86 n=34  ✅
+#   DOTUSDT  sc=4 adx=30  WR=86.7% PF=2.80 n=15  ✅
+#   SUIUSDT  sc=6 adx=25  WR=95.2% PF=11.32 n=21 ✅
+#   BNBUSDT  sc=3 adx=20  WR=71.7% PF=0.66 n=53  ❌ PF<1 暂停
+#   POLUSDT  sc=3 adx=15  WR=70.5% PF=0.78 n=44  ❌ PF<1 暂停
 SYM_CFG: Dict[str, SymCfg] = {
-    # BTC: sc=4连涨触发SHORT，ADX≥22确保趋势，tp=1.8ATR经引擎验证最优
-    "BTCUSDT":  SymCfg(sc=4, lc=5, ccp=0.002,  adx_th=22, tp_mult=1.8, sl_mult=1.4),
-    # ETH: 暂停 — 180天均值回归失效（单边下跌行情），保留配置但不在SYMBOLS中激活
-    # "ETHUSDT":  SymCfg(sc=5, lc=4, ccp=0.0015, adx_th=18, tp_mult=2.0, sl_mult=1.5),
-    # SOL: adx_th=30过滤低趋势横盘，减少假信号
-    "SOLUSDT":  SymCfg(sc=5, lc=4, ccp=0.0015, adx_th=30, tp_mult=2.2, sl_mult=1.6),
-    # BNB: 禁LONG（历史LONG负期望），SHORT WR=70% 最高
-    "BNBUSDT":  SymCfg(sc=5, lc=6, ccp=0.0015, adx_th=15, tp_mult=2.0, sl_mult=1.5, allow_long=False),
-    # LINK: sc=7严格过滤，禁LONG，tp=2.5但需Maker费才盈利
-    "LINKUSDT": SymCfg(sc=7, lc=6, ccp=0.0015, adx_th=25, tp_mult=2.0, sl_mult=1.5, allow_long=False),
-    # SUI: 高sc=7防假信号，波动小需ccp=0.0008
-    "SUIUSDT":  SymCfg(sc=7, lc=6, ccp=0.0008, adx_th=25, tp_mult=2.0, sl_mult=1.5),
-    # POL: 禁LONG，SHORT WR=65.2% 稳定
-    "POLUSDT":  SymCfg(sc=5, lc=4, ccp=0.0015, adx_th=25, tp_mult=2.0, sl_mult=1.5, allow_long=False),
-    # DOT: 标准参数，待更多数据验证
-    "DOTUSDT":  SymCfg(sc=5, lc=4, ccp=0.0015, adx_th=20, tp_mult=2.2, sl_mult=1.5),
+    # BTC: sc=3连涨触发SHORT，ADX≥15，tp=0.6ATR（快速止盈锁利）
+    "BTCUSDT":  SymCfg(sc=3, lc=4, ccp=0.001,  adx_th=15, tp_mult=0.6, sl_mult=1.5),
+    # ETH: 重新启用，sc=5+adx=15，WR=85.7%
+    "ETHUSDT":  SymCfg(sc=5, lc=3, ccp=0.0015, adx_th=15, tp_mult=0.6, sl_mult=1.5),
+    # SOL: sc=6严格过滤，adx=25，WR=92.3% 最高之一
+    "SOLUSDT":  SymCfg(sc=6, lc=5, ccp=0.001,  adx_th=25, tp_mult=0.8, sl_mult=1.5),
+    # BNB: PF=0.66 亏钱，暂停（保留配置备用）
+    # "BNBUSDT":  SymCfg(sc=3, lc=3, ccp=0.0015, adx_th=20, tp_mult=0.6, sl_mult=1.5, allow_long=False),
+    # LINK: sc=4+ccp=0.003严格，禁LONG，WR=79.4% PF=1.86
+    "LINKUSDT": SymCfg(sc=4, lc=3, ccp=0.003,  adx_th=15, tp_mult=0.8, sl_mult=1.5, allow_long=False),
+    # POL: PF=0.78 亏钱，暂停（保留配置备用）
+    # "POLUSDT":  SymCfg(sc=3, lc=3, ccp=0.001, adx_th=15, tp_mult=0.6, sl_mult=1.5, allow_long=False),
+    # DOT: sc=4+adx=30严格，WR=86.7% PF=2.80
+    "DOTUSDT":  SymCfg(sc=4, lc=4, ccp=0.001,  adx_th=30, tp_mult=0.6, sl_mult=1.0),
+    # SUI: sc=6+adx=25，WR=95.2% PF=11.32 超强
+    "SUIUSDT":  SymCfg(sc=6, lc=4, ccp=0.001,  adx_th=25, tp_mult=0.6, sl_mult=1.5),
 }
 DEFAULT_SYM_CFG = SymCfg()
 SYMBOLS = list(SYM_CFG.keys())
