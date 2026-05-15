@@ -1,5 +1,19 @@
 #!/usr/bin/env python3
-"""批量下载多品种 K 线数据"""
+# -*- coding: utf-8 -*-
+"""
+download_multi.py — 多品种K线历史数据批量下载工具
+
+【文件说明】
+  批量下载多个品种的历史K线数据到本地。
+  已被 optimize_params.py 和 validate_100_v8.py 的实时API拉取替代（v8.0+）。
+  保留作为离线备份数据准备工具。
+
+【用法】
+  python3 download_multi.py
+
+【输出】
+  data/klines_{symbol}_{interval}.json (每品种独立文件)
+"""
 import subprocess, json, time
 
 def download_symbol(symbol, limit=1000):

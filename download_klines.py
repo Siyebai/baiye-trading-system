@@ -1,4 +1,19 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+download_klines.py — 单品种K线历史数据下载工具
+
+【文件说明】
+  通过 Binance CLI 批量下载单品种历史K线，保存为本地JSON格式。
+  主要用于离线回测数据准备，已被实时API拉取方式替代（v8.0+）。
+
+【用法】
+  python3 download_klines.py  （直接修改文件顶部参数）
+
+【输出】
+  每次下载1000根K线，循环拼接至目标总数
+  文件格式: data/klines_{symbol}_{interval}.json
+"""
 import subprocess, json, time
 
 symbol = 'BTCUSDT'
