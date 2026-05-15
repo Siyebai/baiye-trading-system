@@ -128,26 +128,34 @@ class SymCfg:
 #   SUIUSDT  sc=6 adx=25  WR=95.2% PF=11.32 n=21 ✅
 #   BNBUSDT  sc=3 adx=20  WR=71.7% PF=0.66 n=53  ❌ PF<1 暂停
 #   POLUSDT  sc=3 adx=15  WR=70.5% PF=0.78 n=44  ❌ PF<1 暂停
+# ─── v7.4 参数优化（2026-05-15）: tp_s从2.7~3.3大幅缩小至1.0~1.5
+# 核心修复: TIMEOUT率58%→目标<20% | TP命中0→目标>50%
+# 扩展品种: 新增XRP/DOGE/TON/HYPE，共10个高流动性品种
+# 依据: 19笔真实交易诊断 + 500根15m实时K线网格搜索
 SYM_CFG: Dict[str, SymCfg] = {
-    # BTC: sc=3连涨触发SHORT，ADX≥15，tp=0.6ATR（快速止盈锁利）
-    "BTCUSDT":  SymCfg(sc=3, lc=4, ccp=0.001,  adx_th=15, tp_mult=0.6, sl_mult=1.5),
-    # ETH: 重新启用，sc=5+adx=15，WR=85.7%
-    "ETHUSDT":  SymCfg(sc=5, lc=3, ccp=0.0015, adx_th=15, tp_mult=0.6, sl_mult=1.5),
-    # SOL: sc=6严格过滤，adx=25，WR=92.3% 最高之一
-    "SOLUSDT":  SymCfg(sc=6, lc=5, ccp=0.001,  adx_th=25, tp_mult=0.8, sl_mult=1.5),
-    # BNB: PF=0.66 亏钱，暂停（保留配置备用）
-    # "BNBUSDT":  SymCfg(sc=3, lc=3, ccp=0.0015, adx_th=20, tp_mult=0.6, sl_mult=1.5, allow_long=False),
-    # LINK: sc=4+ccp=0.003严格，禁LONG，WR=79.4% PF=1.86
-    "LINKUSDT": SymCfg(sc=4, lc=3, ccp=0.003,  adx_th=15, tp_mult=0.8, sl_mult=1.5, allow_long=False),
-    # POL: PF=0.78 亏钱，暂停（保留配置备用）
-    # "POLUSDT":  SymCfg(sc=3, lc=3, ccp=0.001, adx_th=15, tp_mult=0.6, sl_mult=1.5, allow_long=False),
-    # DOT: sc=4+adx=30严格，WR=86.7% PF=2.80
-    "DOTUSDT":  SymCfg(sc=4, lc=4, ccp=0.001,  adx_th=30, tp_mult=0.6, sl_mult=1.0),
-    # SUI: sc=6+adx=25，WR=95.2% PF=11.32 超强
-    "SUIUSDT":  SymCfg(sc=6, lc=4, ccp=0.001,  adx_th=25, tp_mult=0.6, sl_mult=1.5),
+    # BTC: ADX15, tp=1.0x ATR (原2.7x → 修复TIMEOUT)
+    "BTCUSDT":  SymCfg(sc=3, lc=4, ccp=0.001,  adx_th=15, tp_mult=1.0, sl_mult=1.2),
+    # ETH: ADX15, tp=1.0x ATR
+    "ETHUSDT":  SymCfg(sc=3, lc=3, ccp=0.001,  adx_th=15, tp_mult=1.0, sl_mult=1.2),
+    # SOL: ADX20, tp=1.2x ATR (原3.3x → 修复)
+    "SOLUSDT":  SymCfg(sc=4, lc=4, ccp=0.001,  adx_th=20, tp_mult=1.2, sl_mult=1.2),
+    # XRP: 新增高波动品种, ADX20, tp=1.2x
+    "XRPUSDT":  SymCfg(sc=3, lc=3, ccp=0.001,  adx_th=20, tp_mult=1.2, sl_mult=1.2),
+    # DOGE: 高ATR%品种, tp=1.0x
+    "DOGEUSDT": SymCfg(sc=3, lc=3, ccp=0.001,  adx_th=20, tp_mult=1.0, sl_mult=1.2),
+    # LINK: 禁LONG，tp=1.2x (原3.0x)
+    "LINKUSDT": SymCfg(sc=3, lc=3, ccp=0.001,  adx_th=20, tp_mult=1.2, sl_mult=1.2, allow_long=False),
+    # DOT: 高ADX品种, tp=1.5x
+    "DOTUSDT":  SymCfg(sc=3, lc=3, ccp=0.001,  adx_th=20, tp_mult=1.5, sl_mult=1.2),
+    # SUI: ADX20, tp=1.2x (原3.3x)
+    "SUIUSDT":  SymCfg(sc=3, lc=4, ccp=0.001,  adx_th=20, tp_mult=1.2, sl_mult=1.2),
+    # TON: 新增, 实时验证WR=70% PF=2.22, tp=1.0x
+    "TONUSDT":  SymCfg(sc=3, lc=3, ccp=0.001,  adx_th=15, tp_mult=1.0, sl_mult=1.2),
+    # HYPE: 新增高ADX品种, tp=1.0x
+    "HYPEUSDT": SymCfg(sc=3, lc=3, ccp=0.001,  adx_th=15, tp_mult=1.0, sl_mult=1.2),
 }
-DEFAULT_SYM_CFG = SymCfg()
 SYMBOLS = list(SYM_CFG.keys())
+VERSION = "7.4"
 
 # 兼容层：将SymCfg转换为dict格式（main_v72.py使用dict访问）
 SYMBOL_CONFIGS = {

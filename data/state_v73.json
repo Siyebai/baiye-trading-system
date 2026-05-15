@@ -1,21 +1,26 @@
 {
   "positions": {},
-  "equity": 149.41521380486012,
+  "equity": 148.83423597804534,
   "peak_equity": 150.0153453100089,
-  "max_drawdown": 0.4343369998972539,
-  "day_loss": 0.8457204622510122,
-  "day_date": "2026-05-13",
-  "total_trades": 11,
-  "wins": 5,
-  "losses": 6,
-  "total_pnl": -0.584786195139914,
-  "streak": 1,
+  "max_drawdown": 0.9418199610438317,
+  "day_loss": 0.8337574765954803,
+  "day_date": "2026-05-14",
+  "total_trades": 19,
+  "wins": 9,
+  "losses": 10,
+  "total_pnl": -1.1657640219546637,
+  "streak": 3,
   "daily_stats": {
     "2026-05-13": {
       "pnl": -0.584786195139914,
       "trades": 11,
       "wins": 5
+    },
+    "2026-05-14": {
+      "pnl": -0.5809778268147495,
+      "trades": 8,
+      "wins": 4
     }
   },
-  "_crc": "16d4b52e0341be9d72e6c7b0f418ee5a"
+  "_crc": "bc053f65a566b35b0d56fe715b56cd6b"
 }
