@@ -1,12 +1,30 @@
 """
-白夜交易系统 v8.0 — 配置层（深度优化版）
+白夜交易系统 v8.1 — 配置层（深度优化版）
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-融合来源:
-  v7.1  — 6品种验证参数、Wilder指标、动态TP、日熔断
-  v7.2c — 相关性控制、WRGuard、Kelly、追踪止损、多周期
-  v9.3  — SymCfg、6层评分参数、3段追踪、弹性WRGuard、资金费率
-  v8.0  — 2026-05-15真实数据优化: 10品种最优参数、TP压低修复TIMEOUT
-           optimize_params.py v2: 1920组/品种网格 + 实时Binance K线
+
+【文件说明】
+  本文件是整个系统的统一配置入口，所有策略参数、风控参数、
+  品种参数均在此集中管理，引擎main_v73.py直接import使用。
+
+【版本历史】
+  v7.1  — 6品种基础参数 + Wilder ATR/ADX + 动态TP + 日熔断
+  v7.2c — 相关性控制 + WRGuard + Kelly仓位 + 追踪止损 + 多周期
+  v9.3  — SymCfg品种个性化 + 6层评分 + 3段追踪 + 资金费率过滤
+  v8.0  — 2026-05-15 真实数据优化: tp_mult压低至0.6-0.8x修复TIMEOUT率58%问题
+  v8.1  — 2026-05-15 663笔Walk-Forward OOS验证:
+           · 筛选出7个PF>1有效品种(WR=70.7% PF=1.51)
+           · BTC/ETH/LINK/HYPE adx_th提升至35过滤强趋势市场
+           · DOGE tp=1.5/sl=1.8 优化RR比
+           · DOT  tp=0.8/sl=1.0 优化RR比
+           · TON  tp=0.8↑ PF从1.25→1.51
+
+【关键参数说明】
+  SYM_CFG     — 品种个性化参数(每品种独立sc/lc/ccp/adx_th/tp_mult/sl_mult)
+  MAX_HOLD_BARS   — 最大持仓根数(超出强制TIMEOUT平仓，v8.0从30→25)
+  DYNAMIC_TP_MULT — ADX过热时TP自动放大倍数(v8.0调低至1.3适配低基础tp)
+  TRAILING_STOP   — 追踪止损开关及激活门槛(浮盈≥0.5ATR激活)
+  WR_GUARD        — 滚动30笔胜率保护，低于25%暂停开仓
+  KELLY_FRACTION  — Kelly仓位缩减系数(0.25=1/4 Kelly，保守稳健)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
 from dataclasses import dataclass
@@ -116,6 +134,9 @@ class SymCfg:
     sl_mult:     float = 1.5    # 止损ATR倍数
     allow_long:  bool  = True
     allow_short: bool  = True
+    vol_filter:  bool  = False  # 成交量过滤: 要求vol/vol_ma20 >= vol_th
+    rsi_filter:  bool  = False  # RSI方向过滤: SHORT要求RSI>=55，LONG要求RSI<=45
+    vol_th:      float = 1.2    # 成交量过滤阈值
 
 # ─── v8.1 参数来源：Walk-Forward 663笔OOS验证 + 品种筛选（2026-05-15）───
 # 验证方法: Binance实时1500根K线，IS=500 OOS=1000
@@ -146,17 +167,17 @@ SYM_CFG: Dict[str, SymCfg] = {
     "LINKUSDT": SymCfg(sc=4, lc=3, ccp=0.003,  adx_th=35, tp_mult=0.8, sl_mult=1.5, allow_long=False),
     # DOT: tp=0.8/sl=1.0优化 WR=60% PF=1.16 n=20 ✅
     "DOTUSDT":  SymCfg(sc=4, lc=4, ccp=0.001,  adx_th=30, tp_mult=0.8, sl_mult=1.0),
-    # SUI: 旗舰 WR=86% PF=3.43 🔥
-    "SUIUSDT":  SymCfg(sc=6, lc=4, ccp=0.001,  adx_th=25, tp_mult=0.6, sl_mult=1.5),
-    # TON: WR=73% PF=1.51 n=92 tp=0.8升级 🔥
-    "TONUSDT":  SymCfg(sc=3, lc=3, ccp=0.001,  adx_th=15, tp_mult=0.8, sl_mult=1.5),
+    # SUI: 旗舰 WR=86%→90% PF=3.43→5.05 🔥 +成交量过滤
+    "SUIUSDT":  SymCfg(sc=6, lc=4, ccp=0.001,  adx_th=25, tp_mult=0.6, sl_mult=1.5, vol_filter=True),
+    # TON: WR=73% PF=1.52 n=66 🔥 +RSI方向过滤
+    "TONUSDT":  SymCfg(sc=3, lc=3, ccp=0.001,  adx_th=15, tp_mult=0.8, sl_mult=1.5, rsi_filter=True),
     # HYPE: OOS PF<1，高ADX门槛
     "HYPEUSDT": SymCfg(sc=3, lc=3, ccp=0.001,  adx_th=35, tp_mult=0.8, sl_mult=1.5),
     # POL: WR=73% PF=1.62 禁LONG 🔥
     "POLUSDT":  SymCfg(sc=3, lc=3, ccp=0.001,  adx_th=25, tp_mult=1.2, sl_mult=1.5, allow_long=False),
 }
 SYMBOLS = list(SYM_CFG.keys())
-VERSION = "8.1"
+VERSION = "8.2"
 
 # 兼容层：将SymCfg转换为dict格式（main_v72.py使用dict访问）
 SYMBOL_CONFIGS = {
@@ -169,6 +190,9 @@ SYMBOL_CONFIGS = {
         "sl_atr":        sc.sl_mult,  # sl_mult即sl_atr
         "long_disabled": not sc.allow_long,
         "short_disabled":not sc.allow_short,
+        "vol_filter":    sc.vol_filter,
+        "rsi_filter":    sc.rsi_filter,
+        "vol_th":        sc.vol_th,
     }
     for sym, sc in SYM_CFG.items()
 }

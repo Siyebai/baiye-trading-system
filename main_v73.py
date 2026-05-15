@@ -1,9 +1,20 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-白夜交易系统 v7.3 — 深度优化版
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-整合融合历史:
+白夜交易系统 v7.3 — 主引擎（配置加载v8.1）
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+【文件说明】
+  本文件是整个白夜交易系统的主引擎。所有策略参数来自 config.py，
+  引擎本身负责以下核心逻辑:
+    1) 实时拉取多周期K线 (3m/5m/15m/1h) — ThreadPool并发
+    2) 计算干切信号 (ADX过热山 + 连涨连跌累幅)
+    3) 6层评分系统过滤低质量信号
+    4) Kelly动态仓位 + WRGuard风控保护
+    5) 追踪止损锁定利润 + 资金费率过滤
+    6) 原子化状态持久化 (data/state_v73.json)
+
+【引擎版本历史】
   v7.1  Wilder ATR/ADX | cc方向切换修复 | 双触发open价优先 | 动态TP
         原子写入 | 日熔断 | 冷却期 | 名义值保护 | 单品种异常隔离
   v7.2  Kelly仓位 | WinRate Guard | 追踪止损 | 相关性控制
@@ -11,8 +22,19 @@
   v7.3  并发K线拉取(ThreadPool) | TF扫描顺序修复(15m/5m/3m)
         SHORT/LONG EMA200距离保护 | 评分阈值优化 | 资金费率过滤
         性能监控增强 | 自动重试机制增强
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-目标: 短线高频 | 3~60m多周期布局 | 胜率≥55% | 月均+8%以上
+
+【配置加载】
+  所有参数通过 import config as cfg 加载
+  当前生效版本: config.VERSION = 8.1 (2026-05-15)
+  当前品种数: 11个 (SUI/TON/POL/SOL/DOGE/DOT是核心盈利品种)
+
+【运行方式】
+  引擎本身: python3 main_v73.py
+  守护启动: bash watchdog_v73.sh  (推荐，自动重启)
+  日志路径: logs/baiye_v73.log
+  状态文件: data/state_v73.json
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+目标: 短线高频 | 3~60m多周期布局 | 胜率≥58% | PF≥1.2 | 月均+8%以上
 """
 from __future__ import annotations
 
@@ -148,6 +170,17 @@ def compute_indicators(df: pd.DataFrame) -> pd.DataFrame:
     rs    = np.where(avg_l > 0, avg_g / avg_l, 100.0)
     df["rsi"] = 100 - 100 / (1 + rs)
 
+    # 相对成交量倍数 (当前成交量 / 20期均量) — 用于成交量过滤
+    if "vol" in df.columns:
+        vol_arr = df["vol"].values.astype(float)
+        vol_ma20 = np.zeros(len(vol_arr))
+        for i2 in range(20, len(vol_arr)):
+            vol_ma20[i2] = vol_arr[max(0,i2-20):i2].mean()
+        vol_ma20[:20] = vol_arr[:20].mean() if vol_arr[:20].mean() > 0 else 1.0
+        df["vol_ratio"] = np.where(vol_ma20 > 0, vol_arr / vol_ma20, 1.0)
+    else:
+        df["vol_ratio"] = 1.0
+
     # 连涨(cu)/连跌(cd)/累涨跌幅(cc) — 方向切换重置修复（v6.9）
     cu = np.zeros(n, dtype=int)
     cd = np.zeros(n, dtype=int)
@@ -236,14 +269,24 @@ def _raw_signal(symbol: str, df: pd.DataFrame, sym_cfg: dict) -> Optional[dict]:
     cc    = float(row["cc"])
     entry = float(cur["close"])
 
+    # 成交量倍数 (用于高质量信号过滤)
+    vol_ratio = float(row["vol_ratio"]) if "vol_ratio" in row and not np.isnan(row["vol_ratio"]) else 1.0
+    # RSI方向过滤阈值 (由sym_cfg决定是否启用)
+    use_vol_filter = sym_cfg.get("vol_filter", False)
+    use_rsi_filter = sym_cfg.get("rsi_filter", False)
+    vol_th = sym_cfg.get("vol_th", 1.2)
+
     # 动态TP
     tp_s = sym_cfg["tp_s"]
     if adx >= cfg.DYNAMIC_TP_ADX_TH:
         tp_s = tp_s * cfg.DYNAMIC_TP_MULT
 
-    # SHORT: 连涨≥sc + 累涨≥ccp + close<EMA200(趋势过滤)
+    # SHORT: 连涨≥sc + 累涨≥ccp + close<EMA200(趋势过滤) + 可选成交量/RSI过滤
+    _short_vol_ok  = (not use_vol_filter) or (vol_ratio >= vol_th)
+    _short_rsi_ok  = (not use_rsi_filter) or (rsi >= 55)
     if (cu >= sym_cfg["sc"] and cc >= sym_cfg["ccp"]
-            and (ema <= 0 or entry < ema)):  # EMA200方向过滤：SHORT只在價格下EMA200时开空
+            and (ema <= 0 or entry < ema)
+            and _short_vol_ok and _short_rsi_ok):  # EMA200方向+成交量+RSI过滤
         return {
             "side":       "short",
             "entry":      entry,
@@ -259,11 +302,14 @@ def _raw_signal(symbol: str, df: pd.DataFrame, sym_cfg: dict) -> Optional[dict]:
             "ema200": round(ema, 4),
         }
 
-    # LONG: 连跌≥lc + 累跌≥ccp + close>EMA200
+    # LONG: 连跌≥lc + 累跌≥ccp + close>EMA200 + 可选过滤
+    _long_vol_ok = (not use_vol_filter) or (vol_ratio >= vol_th)
+    _long_rsi_ok = (not use_rsi_filter) or (rsi <= 45)
     if (not sym_cfg["long_disabled"]
             and cd >= sym_cfg["lc"]
             and cc <= -sym_cfg["ccp"]
-            and entry > ema):
+            and entry > ema
+            and _long_vol_ok and _long_rsi_ok):
         return {
             "side":       "long",
             "entry":      entry,
