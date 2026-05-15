@@ -1,10 +1,32 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-optimize_params.py v2 — 真实数据参数优化（快速版）
-- 带超时的 Binance API 数据拉取
-- 针对均值回归策略的精简网格（重点参数）
-- 输出最优参数 + 生成 config_patch.py
+optimize_params.py v2 — 白夜交易系统参数优化器
+
+【文件说明】
+  接入 Binance Futures API 实时数据，对所有品种进行网格搜索，
+  找到每个品种的最优参数组合（sc/lc/ccp/adx_th/tp_s/sl）。
+  结果直接可复制进 config.py 的 SYM_CFG 区域。
+
+【运行方式】
+  python3 optimize_params.py
+  结果保存至: research/optimize_result_v2.json
+
+【优化参数说明】
+  sc      — 连涨根数触发 SHORT（3~7）
+  lc      — 连跌根数触发 LONG（3~5）
+  ccp     — 累计涨跌幅阈值（0.001~0.003）
+  adx_th  — ADX 最低门槛（过热山，15~35）
+  tp_s    — 止盈 ATR 倍数（0.6~1.5）
+  sl      — 止损 ATR 倍数（固定 1.5）
+
+【评分方法】
+  综合评分 = WR×0.55 + PF×0.3 + n×0.15
+  WR≥50% 且 PF≥1.0 方可被选中（BNB/POL PF<1 暂停开仓）
+
+【数据来源】
+  Binance Futures API: /fapi/v1/klines
+  1000根 15m K线 per 品种，带超时保护（10秒）
 """
 from __future__ import annotations
 import json, sys, time, warnings, signal

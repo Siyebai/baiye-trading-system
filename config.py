@@ -91,13 +91,13 @@ DYNAMIC_TP_ADX_TH = 30   # v8.0: 35→30，更多交易触发DTP
 DYNAMIC_TP_MULT   = 1.3  # v8.0: 1.5→1.3，适配低基准tp_mult
 
 # ═══════════ 3段追踪止损（v9.3升级）═══════════
-TRAIL_BREAKEVEN_ATR  = 0.5   # 浮盈≥0.5ATR → 移至保本
+TRAIL_BREAKEVEN_ATR  = 0.4   # v8.3深度测试: TON最优trl=0.4，更早锁盈
 TRAIL_LOCK_ATR       = 1.0   # 浮盈≥1.0ATR → 锁定0.3ATR盈利
 TRAIL_DYNAMIC_ATR    = 1.5   # 浮盈≥1.5ATR → 动态追踪
 TRAIL_DYNAMIC_DIST   = 0.8   # 动态追踪距当前价 0.8ATR
 # 追踪止损开关及阈值（main_v72.py引用）
 TRAILING_STOP_ENABLED = True
-TRAILING_STOP_THRESH  = 0.5  # v8.0: 0.6→0.5，更早锁盈
+TRAILING_STOP_THRESH  = 0.4  # v8.2深度测试: 0.5→0.4，TON最优trl=0.4 PF=7.31
 TRAILING_STOP_DIST    = 0.4  # v8.0: 0.5→0.4ATR，收紧追踪距离
 
 # ═══════════ 相关性控制 ═══════════
@@ -177,7 +177,7 @@ SYM_CFG: Dict[str, SymCfg] = {
     "POLUSDT":  SymCfg(sc=3, lc=3, ccp=0.001,  adx_th=25, tp_mult=1.2, sl_mult=1.5, allow_long=False),
 }
 SYMBOLS = list(SYM_CFG.keys())
-VERSION = "8.2"
+VERSION = "8.3"
 
 # 兼容层：将SymCfg转换为dict格式（main_v72.py使用dict访问）
 SYMBOL_CONFIGS = {

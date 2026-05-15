@@ -1,10 +1,34 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-validate_100_v8.py — v8.0 100笔真实数据验证
-- 接入Binance API实时数据（11品种，多周期）
-- 完整Walk-Forward验证（OOS区间）
-- 统计: WR/PF/最大回撤/TIMEOUT率/Kelly建议
+validate_100_v8.py — 白夜交易系统 Walk-Forward 验证框架
+
+【文件说明】
+  本文件对 v8.x 参数进行严格的 Walk-Forward OOS（样本外）验证。
+  前 500 根 K线 为 IS（样本内，用于历史参数优化），
+  后 1000 根 K线 为 OOS（样本外，模拟真实交易）。
+  只有 OOS 结果才有参考意义。
+
+【运行方式】
+  python3 validate_100_v8.py
+  结果保存至: research/validate_100_v8.json
+
+【输出指标】
+  WR        — 胜率（目标 ≥ 58%）
+  PF        — 盈亏因子（目标 ≥ 1.0）
+  TIMEOUT率 — 超时平仓占比（目标 < 20%，v8.0修复后已达0.2%）
+  TP命中率  — 止盈命中占比（越高越好）
+  最大回撤  — 序列最大权益回撤（限制 ≤ 25%）
+  Kelly建议 — Kelly公式建议仓位比例
+
+【v8.1 验证结论】(2026-05-15 663笔OOS)
+  7品种有效组合: WR=70.7% PF=1.51 总PnL=+1.49U ✅
+  TIMEOUT率: 0.2% ✅（v8.0 tp_mult压低后修复成功）
+  ETH/XRP/LINK/HYPE: 当前强趋势市场均值回归失效，暂停或提高门槛
+
+【数据来源】
+  Binance Futures API: /fapi/v1/klines
+  1500根 15m K线 per 品种（API limit上限），OOS区间1000根
 """
 from __future__ import annotations
 import json, time, warnings
