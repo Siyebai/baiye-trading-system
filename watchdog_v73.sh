@@ -28,7 +28,7 @@ is_alive() {
 
 # ── 启动引擎（完全脱离会话，免疫 SIGHUP/SIGTERM 传播）──
 start_engine() {
-    log "🚀 启动 v7.3 引擎..."
+    log "🚀 启动 v8.1 引擎..."
     # setsid 创建新会话；nohup 忽略 SIGHUP；>> 追加日志
     nohup setsid python3 "$ENGINE" \
         >> "$STDOUT_LOG" 2>&1 &

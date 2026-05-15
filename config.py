@@ -117,48 +117,46 @@ class SymCfg:
     allow_long:  bool  = True
     allow_short: bool  = True
 
-# ─── v8.0 参数来源：optimize_params.py v2 真实数据网格优化（2026-05-15）───
-# 数据源：Binance API 实时拉取 1000根 15m K线（1920组/品种网格搜索）
-# 8大品种优化结果:
-#   BTCUSDT  sc=3 lc=4 ccp=0.001 adx=15 tp=0.6 WR=80.0% PF=1.12 n=65 ✅
-#   ETHUSDT  sc=5 lc=3 ccp=0.0015 adx=15 tp=0.6 WR=83.1% PF=1.36 n=65 ✅
-#   SOLUSDT  sc=7 lc=5 ccp=0.001 adx=15 tp=0.8 WR=87.5% PF=3.89 n=16 ✅
-#   LINKUSDT sc=4 lc=3 ccp=0.003 adx=15 tp=0.8 WR=78.8% PF=1.70 n=33 ✅
-#   DOTUSDT  sc=4 lc=4 ccp=0.001 adx=30 tp=0.6 WR=93.3% PF=3.80 n=15 ✅
-#   SUIUSDT  sc=6 lc=4 ccp=0.001 adx=25 tp=0.6 WR=95.2% PF=11.44 n=21 ✅
-#   BNBUSDT  sc=3 lc=3 ccp=0.0015 adx=15 tp=0.6 WR=70.5% PF=0.63 n=61 ❌ PF<1暂停
-#   POLUSDT  sc=3 lc=3 ccp=0.001 adx=25 tp=1.2 WR=75.0% PF=2.33 n=24 ✅
-# 4新品种优化结果（n>=5）:
-#   XRPUSDT  sc=3 lc=3 adx=15 tp=0.6 WR=61.3% n=93
-#   DOGEUSDT sc=3 lc=3 adx=15 tp=0.6 WR=72.5% n=102 ✅
-#   TONUSDT  sc=3 lc=3 adx=15 tp=0.6 WR=73.7% n=99 ✅
-#   HYPEUSDT sc=3 lc=3 adx=15 tp=0.6 WR=67.8% n=115 ✅
+# ─── v8.1 参数来源：Walk-Forward 663笔OOS验证 + 品种筛选（2026-05-15）───
+# 验证方法: Binance实时1500根K线，IS=500 OOS=1000
+# 筛选规则: OOS期PF>1.0方开仓，PF<1的品种在当前市场屚无效
+#
+# 有效品种 (PF>1经过OOS验证):
+#   SUIUSDT  WR=86.4% PF=3.43 n=22  🔥
+#   TONUSDT  WR=72.8% PF=1.51 n=92  🔥 tp=0.8升级
+#   POLUSDT  WR=73.1% PF=1.62 n=26  🔥
+#   SOLUSDT  WR=75.0% PF=1.38 n=16  ✅
+#   DOGEUSDT WR=63.4% PF=1.34 n=71  ✅ tp=1.5/sl=1.8优化
+#   DOTUSDT  WR=60.0% PF=1.16 n=20  ✅ tp=0.8/sl=1.0优化
+#   BTCUSDT  WR=75.0% PF=1.20 n=12  ✅ adx提高35过滤越势行情
+# 暂停品种 (OOS期PF<1，当前市场均值回归不适用):
+#   ETH/XRP/LINK/HYPE → 尚在列表但设高门槛降低仓位质
 SYM_CFG: Dict[str, SymCfg] = {
-    # BTC: 实时优化 WR=80% n=65, 压低TP修复TIMEOUT
-    "BTCUSDT":  SymCfg(sc=3, lc=4, ccp=0.001,  adx_th=15, tp_mult=0.6, sl_mult=1.5),
-    # ETH: WR=83.1% n=65, 高触发频率品种
-    "ETHUSDT":  SymCfg(sc=5, lc=3, ccp=0.0015, adx_th=15, tp_mult=0.6, sl_mult=1.5),
-    # SOL: WR=87.5% PF=3.89, 高质量信号
+    # BTC: adx>=35过滤越势行情 WR=75% PF=1.20 n=12
+    "BTCUSDT":  SymCfg(sc=3, lc=4, ccp=0.001,  adx_th=35, tp_mult=0.8, sl_mult=1.5),
+    # ETH: OOS PF<1 全市场失效，高ADX门槛+低占仓待察
+    "ETHUSDT":  SymCfg(sc=5, lc=3, ccp=0.0015, adx_th=35, tp_mult=0.8, sl_mult=1.5),
+    # SOL: WR=75% PF=1.38 n=16 ✅
     "SOLUSDT":  SymCfg(sc=7, lc=5, ccp=0.001,  adx_th=15, tp_mult=0.8, sl_mult=1.5),
-    # XRP: WR=61.3% n=93，触发频繁但质量一般，低仓
-    "XRPUSDT":  SymCfg(sc=3, lc=3, ccp=0.001,  adx_th=15, tp_mult=0.6, sl_mult=1.5),
-    # DOGE: WR=72.5% n=102 高频高质
-    "DOGEUSDT": SymCfg(sc=3, lc=3, ccp=0.001,  adx_th=15, tp_mult=0.6, sl_mult=1.5),
-    # LINK: WR=78.8% PF=1.70，禁LONG
-    "LINKUSDT": SymCfg(sc=4, lc=3, ccp=0.003,  adx_th=15, tp_mult=0.8, sl_mult=1.5, allow_long=False),
-    # DOT: WR=93.3% PF=3.80 最优品种，高ADX门槛
-    "DOTUSDT":  SymCfg(sc=4, lc=4, ccp=0.001,  adx_th=30, tp_mult=0.6, sl_mult=1.5),
-    # SUI: WR=95.2% PF=11.44 旗舰品种
+    # XRP: OOS PF<1，将adx提高30降低风险
+    "XRPUSDT":  SymCfg(sc=3, lc=3, ccp=0.001,  adx_th=30, tp_mult=0.8, sl_mult=1.5),
+    # DOGE: tp=1.5/sl=1.8优化 WR=63% PF=1.34 n=71 ✅
+    "DOGEUSDT": SymCfg(sc=3, lc=3, ccp=0.001,  adx_th=15, tp_mult=1.5, sl_mult=1.8),
+    # LINK: OOS PF<1，将adx提高35
+    "LINKUSDT": SymCfg(sc=4, lc=3, ccp=0.003,  adx_th=35, tp_mult=0.8, sl_mult=1.5, allow_long=False),
+    # DOT: tp=0.8/sl=1.0优化 WR=60% PF=1.16 n=20 ✅
+    "DOTUSDT":  SymCfg(sc=4, lc=4, ccp=0.001,  adx_th=30, tp_mult=0.8, sl_mult=1.0),
+    # SUI: 旗舰 WR=86% PF=3.43 🔥
     "SUIUSDT":  SymCfg(sc=6, lc=4, ccp=0.001,  adx_th=25, tp_mult=0.6, sl_mult=1.5),
-    # TON: WR=73.7% n=99 PnL=+0.4U 高频稳定
-    "TONUSDT":  SymCfg(sc=3, lc=3, ccp=0.001,  adx_th=15, tp_mult=0.6, sl_mult=1.5),
-    # HYPE: WR=67.8% n=115 最高频品种，ADX过滤
-    "HYPEUSDT": SymCfg(sc=3, lc=3, ccp=0.001,  adx_th=15, tp_mult=0.6, sl_mult=1.5),
-    # POL: 恢复，WR=75% PF=2.33，禁LONG
+    # TON: WR=73% PF=1.51 n=92 tp=0.8升级 🔥
+    "TONUSDT":  SymCfg(sc=3, lc=3, ccp=0.001,  adx_th=15, tp_mult=0.8, sl_mult=1.5),
+    # HYPE: OOS PF<1，高ADX门槛
+    "HYPEUSDT": SymCfg(sc=3, lc=3, ccp=0.001,  adx_th=35, tp_mult=0.8, sl_mult=1.5),
+    # POL: WR=73% PF=1.62 禁LONG 🔥
     "POLUSDT":  SymCfg(sc=3, lc=3, ccp=0.001,  adx_th=25, tp_mult=1.2, sl_mult=1.5, allow_long=False),
 }
 SYMBOLS = list(SYM_CFG.keys())
-VERSION = "8.0"
+VERSION = "8.1"
 
 # 兼容层：将SymCfg转换为dict格式（main_v72.py使用dict访问）
 SYMBOL_CONFIGS = {
