@@ -6,6 +6,7 @@
 
 | 文件 | 版本 | 说明 |
 |------|------|------|
+| `optimize_v84.json`       | v8.4 | **最新** 8品种 Sharpe目标函数优化结果，IS=400 OOS=1100根，含WR/PF/Sharpe/MaxDD |
 | `optimize_result_v2.json` | v8.0 | 11品种 1920组/品种 网格搜索结果，Binance实时1000根15m K线 |
 | `optimize_extra.json` | v8.0 | 新增4品种(SUI/TON/HYPE/POL)最优参数 |
 | `validate_100_v8.json` | v8.1 | 663笔 Walk-Forward OOS验证结果，15m 1500根，IS=500 OOS=1000 |
