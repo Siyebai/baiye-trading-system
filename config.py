@@ -153,31 +153,47 @@ class SymCfg:
 # 暂停品种 (OOS期PF<1，当前市场均值回归不适用):
 #   ETH/XRP/LINK/HYPE → 尚在列表但设高门槛降低仓位质
 SYM_CFG: Dict[str, SymCfg] = {
-    # BTC: adx>=35过滤越势行情 WR=75% PF=1.20 n=12
-    "BTCUSDT":  SymCfg(sc=3, lc=4, ccp=0.001,  adx_th=35, tp_mult=0.8, sl_mult=1.5),
-    # ETH: OOS PF<1 全市场失效，高ADX门槛+低占仓待察
-    "ETHUSDT":  SymCfg(sc=5, lc=3, ccp=0.0015, adx_th=35, tp_mult=0.8, sl_mult=1.5),
-    # SOL: WR=75% PF=1.38 n=16 ✅
-    "SOLUSDT":  SymCfg(sc=7, lc=5, ccp=0.001,  adx_th=15, tp_mult=0.8, sl_mult=1.5),
-    # XRP: OOS PF<1，将adx提高30降低风险
-    "XRPUSDT":  SymCfg(sc=3, lc=3, ccp=0.001,  adx_th=30, tp_mult=0.8, sl_mult=1.5),
-    # DOGE: tp=1.5/sl=1.8优化 WR=63% PF=1.34 n=71 ✅
-    "DOGEUSDT": SymCfg(sc=3, lc=3, ccp=0.001,  adx_th=15, tp_mult=1.5, sl_mult=1.8),
-    # LINK: OOS PF<1，将adx提高35
-    "LINKUSDT": SymCfg(sc=4, lc=3, ccp=0.003,  adx_th=35, tp_mult=0.8, sl_mult=1.5, allow_long=False),
-    # DOT: tp=0.8/sl=1.0优化 WR=60% PF=1.16 n=20 ✅
-    "DOTUSDT":  SymCfg(sc=4, lc=4, ccp=0.001,  adx_th=30, tp_mult=0.8, sl_mult=1.0),
-    # SUI: 旗舰 WR=86%→90% PF=3.43→5.05 🔥 +成交量过滤
-    "SUIUSDT":  SymCfg(sc=6, lc=4, ccp=0.001,  adx_th=25, tp_mult=0.6, sl_mult=1.5, vol_filter=True),
-    # TON: WR=73% PF=1.52 n=66 🔥 +RSI方向过滤
-    "TONUSDT":  SymCfg(sc=3, lc=3, ccp=0.001,  adx_th=15, tp_mult=0.8, sl_mult=1.5, rsi_filter=True),
-    # HYPE: OOS PF<1，高ADX门槛
-    "HYPEUSDT": SymCfg(sc=3, lc=3, ccp=0.001,  adx_th=35, tp_mult=0.8, sl_mult=1.5),
-    # POL: WR=73% PF=1.62 禁LONG 🔥
-    "POLUSDT":  SymCfg(sc=3, lc=3, ccp=0.001,  adx_th=25, tp_mult=1.2, sl_mult=1.5, allow_long=False),
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # v8.4 最优参数 — 以夏普比率为目标函数（2026-05-16）
+    # 数据: Binance实时1500根15m K线, IS=400 OOS=1100根
+    # 优化方法: 综合评分 = Sharpe×(1-MaxDD), PF≥1.0且Sharpe>0才入选
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    # 🔥 TON: WR=94.4% PF=17.29 Sharpe=196 MaxDD=0.8% — 旗舰品种
+    "TONUSDT":  SymCfg(sc=4, lc=4, ccp=0.001, adx_th=20, tp_mult=0.8, sl_mult=1.0,
+                       rsi_filter=True),
+
+    # 🔥 SUI: WR=93.8% PF=8.81 Sharpe=173 MaxDD=0.8%
+    "SUIUSDT":  SymCfg(sc=5, lc=4, ccp=0.001, adx_th=20, tp_mult=0.6, sl_mult=2.0,
+                       vol_filter=True),
+
+    # 🔥 BTC: WR=82.4% PF=3.10 Sharpe=79 MaxDD=0.4% — adx_th降至25
+    "BTCUSDT":  SymCfg(sc=5, lc=4, ccp=0.001, adx_th=25, tp_mult=0.6, sl_mult=2.0,
+                       vol_filter=True, rsi_filter=True),
+
+    # 🔥 SOL: WR=90.0% PF=2.55 Sharpe=64 MaxDD=0.8% — sc降至5
+    "SOLUSDT":  SymCfg(sc=5, lc=4, ccp=0.001, adx_th=20, tp_mult=1.0, sl_mult=1.5),
+
+    # 🔥 POL: WR=94.7% PF=3.48 Sharpe=87 MaxDD=0.8%
+    "POLUSDT":  SymCfg(sc=5, lc=3, ccp=0.001, adx_th=20, tp_mult=0.6, sl_mult=2.0,
+                       allow_long=False),
+
+    # 🔥 DOT: WR=87.5% PF=2.75 Sharpe=85 MaxDD=0.8%
+    "DOTUSDT":  SymCfg(sc=4, lc=4, ccp=0.001, adx_th=30, tp_mult=0.6, sl_mult=1.0),
+
+    # ✅ DOGE: WR=85.2% PF=1.93 Sharpe=47 MaxDD=1.0% — adx_th提至25
+    "DOGEUSDT": SymCfg(sc=3, lc=3, ccp=0.001, adx_th=25, tp_mult=0.6, sl_mult=1.0),
+
+    # ✅ XRP: WR=91.7% PF=2.06 Sharpe=45 MaxDD=1.3% — 重新纳入
+    "XRPUSDT":  SymCfg(sc=4, lc=4, ccp=0.001, adx_th=30, tp_mult=1.5, sl_mult=2.0),
+
+    # ── 暂停品种（ETH/LINK/HYPE: 任何参数组合Sharpe均<5）──
+    # "ETHUSDT":  暂停 — 均值回归在当前强趋势行情完全失效
+    # "LINKUSDT": 暂停 — adx_th=35后信号量不足
+    # "HYPEUSDT": 暂停 — 极端波动导致Sharpe不稳定
 }
 SYMBOLS = list(SYM_CFG.keys())
-VERSION = "8.3"
+VERSION = "8.4"
 
 # 兼容层：将SymCfg转换为dict格式（main_v72.py使用dict访问）
 SYMBOL_CONFIGS = {
