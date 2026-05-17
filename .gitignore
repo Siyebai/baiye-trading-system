@@ -1,44 +1,8 @@
-# Python
+logs/
+data/*.json
+data/*.jsonl
+data/*.pid
+data/*.lock
 __pycache__/
-*.py[cod]
-*.so
-.Python
-env/
-venv/
-*.egg-info/
-
-# Logs
-logs/*.log
-*.log
-
-# State
-engine/state/*.json
-!engine/state/.gitkeep
-
-# Data (large files)
-data/*_live.json
-data/realtime_*.json
-!data/.gitkeep
-# 不再忽略JSON数据文件，允许上传真实K线数据
-
-# Config with secrets
-config/*_active.json
-config/api_keys.json
-*.secret
+*.pyc
 .env
-
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
-
-# 允许 realtime 数据目录
-!data/realtime/
-!data/realtime/*.json
-
-# 保留主入口和关键文件
-!main_paper_trade.py
-!start_paper_v6*.py
-!paper_trades_v65.json
-!AGENT_GUIDE.md
