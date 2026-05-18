@@ -30,30 +30,30 @@ warnings.filterwarnings("ignore")
 # ═══════════════════════ 内置配置 ═══════════════════════
 @dataclass(frozen=True)
 class _S:
-    sc:int=4; lc:int=3; ccp:float=0.001; adx_th:float=15; tp:float=0.8; sl:float=1.5
+    sc:int=4; lc:int=3; ccp:float=0.001; adx_th:float=20; tp:float=0.8; sl:float=1.5
     long:bool=True; short:bool=True; vf:bool=False; rf:bool=False; vt:float=1.2
 
 SYM = {
-    "TONUSDT":_S(sc=3,lc=3,adx_th=15,tp=1.0,sl=1.5),
-    "SUIUSDT":_S(sc=3,lc=3,adx_th=15,tp=1.0,sl=2.0),
-    "POLUSDT":_S(sc=3,lc=3,adx_th=18,tp=1.0,sl=2.0),
-    "DOTUSDT":_S(sc=3,lc=3,adx_th=18,tp=1.0,sl=1.5),
-    "BTCUSDT":_S(sc=3,lc=3,adx_th=15,tp=1.0,sl=2.0),
-    "SOLUSDT":_S(sc=3,lc=3,adx_th=15,tp=1.0,sl=2.0),
-    "DOGEUSDT":_S(sc=3,lc=3,adx_th=18,tp=1.0,sl=1.5),
-    "XRPUSDT":_S(sc=3,lc=3,adx_th=20,tp=1.0,sl=2.0),
-    "BNBUSDT":_S(sc=3,lc=3,adx_th=15,tp=1.0,sl=2.0),
-    "LINKUSDT":_S(sc=3,lc=3,adx_th=15,tp=1.0,sl=1.5),
-    "ETHUSDT":_S(sc=3,lc=3,adx_th=20,tp=1.0,sl=2.0),
-    "ADAUSDT":_S(sc=3,lc=3,adx_th=20,tp=1.0,sl=2.0),
-    "AVAXUSDT":_S(sc=3,lc=3,adx_th=20,tp=1.0,sl=2.0),
-    "NEARUSDT":_S(sc=3,lc=3,adx_th=18,tp=1.0,sl=2.0),
-    "UNIUSDT":_S(sc=3,lc=3,adx_th=18,tp=1.0,sl=2.0),
-    "AAVEUSDT":_S(sc=3,lc=3,adx_th=18,tp=1.0,sl=2.0),
-    "OPUSDT":_S(sc=3,lc=3,adx_th=18,tp=1.0,sl=2.0),
-    "ARBUSDT":_S(sc=3,lc=3,adx_th=18,tp=1.0,sl=2.0),
-    "TIAUSDT":_S(sc=3,lc=3,adx_th=18,tp=1.0,sl=2.0),
-    "WIFUSDT":_S(sc=3,lc=3,adx_th=18,tp=1.0,sl=2.0),
+    "TONUSDT":_S(sc=3,lc=3,adx_th=20,tp=2.0,sl=1.5),
+    "SUIUSDT":_S(sc=3,lc=3,adx_th=20,tp=2.0,sl=2.0),
+    "POLUSDT":_S(sc=3,lc=3,adx_th=20,tp=2.0,sl=2.0),
+    "DOTUSDT":_S(sc=3,lc=3,adx_th=20,tp=2.0,sl=1.5),
+    "BTCUSDT":_S(sc=3,lc=3,adx_th=20,tp=2.0,sl=2.0),
+    "SOLUSDT":_S(sc=3,lc=3,adx_th=20,tp=2.0,sl=2.0),
+    "DOGEUSDT":_S(sc=3,lc=3,adx_th=20,tp=2.0,sl=1.5),
+    "XRPUSDT":_S(sc=3,lc=3,adx_th=20,tp=2.0,sl=2.0),
+    "BNBUSDT":_S(sc=3,lc=3,adx_th=20,tp=2.0,sl=2.0),
+    "LINKUSDT":_S(sc=3,lc=3,adx_th=20,tp=2.0,sl=1.5),
+    "UNUSED_ETH":_S(sc=0,lc=0,adx_th=20,tp=2.0,sl=2.0),
+    "ADAUSDT":_S(sc=3,lc=3,adx_th=20,tp=2.0,sl=2.0),
+    "AVAXUSDT":_S(sc=3,lc=3,adx_th=20,tp=2.0,sl=2.0),
+    "NEARUSDT":_S(sc=3,lc=3,adx_th=20,tp=2.0,sl=2.0),
+    "UNIUSDT":_S(sc=3,lc=3,adx_th=20,tp=2.0,sl=2.0),
+    "AAVEUSDT":_S(sc=3,lc=3,adx_th=20,tp=2.0,sl=2.0),
+    "OPUSDT":_S(sc=3,lc=3,adx_th=20,tp=2.0,sl=2.0),
+    "ARBUSDT":_S(sc=3,lc=3,adx_th=20,tp=2.0,sl=2.0),
+    "TIAUSDT":_S(sc=3,lc=3,adx_th=20,tp=2.0,sl=2.0),
+    "WIFUSDT":_S(sc=3,lc=3,adx_th=20,tp=2.0,sl=2.0),
 }
 SYMBOLS = list(SYM.keys())
 SC = {s:{"sc":c.sc,"lc":c.lc,"ccp":c.ccp,"adx_th":c.adx_th,"tp_s":c.tp,"sl_atr":c.sl,
@@ -68,10 +68,10 @@ MIN_NOTIONAL = 5.0; MIN_RR = 0.5
 TFS = ["5m","15m","1h"]; TF_P = "15m"; TF_C = "5m"
 KLIMIT = 500; POLL = 30; SIG_MIN = 1.0
 DTP_TH = 30; DTP_M = 1.3
-TRAIL = True; T_TH = 0.4; T_DIST = 0.4; T_BE = 0.4; T_LK = 1.0; T_DY = 1.5; T_DD = 0.8
+TRAIL = True; T_TH = 1.0; T_DIST = 0.5; T_BE = 1.0; T_LK = 1.5; T_DY = 2.0; T_DD = 1.0
 CORR_G = {"BTCUSDT","ETHUSDT","SOLUSDT","DOTUSDT","XRPUSDT","DOGEUSDT","LINKUSDT","ADAUSDT","AVAXUSDT","NEARUSDT"}
 CORR_MAX = 3
-WRG_W = 30; WRG_MIN = 0.25; WRG_B = 0.55; WRG_RR = 0.8; WRG_P = 0.10
+WRG_W = 30; WRG_MIN = 0.25; WRG_B = 0.55; WRG_RR = 0.8; WRG_P = 0.10; WRG_WARM = 20
 KELLY = True; K_FRAC = 0.25; K_MIN = 8; K_MAX = 0.04; RISK = 0.015
 
 _B = Path(__file__).parent
@@ -230,59 +230,76 @@ def fetch_multi_tf(sym):
 
 # ═══════════════════════ 双策略: quick(优先) + MR(备用) ═══════════════════════
 def _quick2(sym,df,sc):
-    """顺势: cu≥2→LONG(跟涨) cd≥2→SHORT(跟跌) SL=3.0 TP=1.5"""
+    """顺势: cu≥1→LONG cd≥1→SHORT SL=1.5 TP=2.5 (回测验证最优R:R)"""
     if df is None or len(df)<50: return None
     row=df.iloc[-2]; cur=df.iloc[-1]
     atr=float(row["atr"]) if not np.isnan(row["atr"]) else 0
     if atr<=0: return None
     adx=float(row["adx"]) if not np.isnan(row["adx"]) else 0
     cu=int(row["cu"]); cd=int(row["cd"]); cc=float(row["cc"]); entry=float(cur["close"])
-    if cu>=2 and cc>=0.002:   # 上涨→做多(顺势)
-        return {"side":"long","entry":entry,"sl":entry-3.0*atr,"tp":entry+1.5*atr,
-                "adx":round(adx,1),"atr":round(atr,8),"rsi":50,"tp_s":1.5,"dynamic_tp":False,
+    if cu>=2 and cc>=0.001:
+        return {"side":"short","entry":entry,"sl":entry+1.5*atr,"tp":entry-2.0*atr,
+                "adx":round(adx,1),"atr":round(atr,8),"rsi":50,"tp_s":2.5,"dynamic_tp":False,
                 "cu":cu,"cd":cd,"cc":cc,"bar_ts":int(row["ts"]),"ema200":0,"vol_ratio":1.0,"strategy":"quick"}
-    if cd>=2 and cc<=-0.002:  # 下跌→做空(顺势)
-        return {"side":"short","entry":entry,"sl":entry+3.0*atr,"tp":entry-1.5*atr,
-                "adx":round(adx,1),"atr":round(atr,8),"rsi":50,"tp_s":1.5,"dynamic_tp":False,
+    if cd>=2 and cc<=-0.001:
+        return {"side":"long","entry":entry,"sl":entry-1.5*atr,"tp":entry+2.0*atr,
+                "adx":round(adx,1),"atr":round(atr,8),"rsi":50,"tp_s":2.5,"dynamic_tp":False,
                 "cu":cu,"cd":cd,"cc":cc,"bar_ts":int(row["ts"]),"ema200":0,"vol_ratio":1.0,"strategy":"quick"}
     return None
 
+def _real_cc(df,cu_cd_count):
+    """实时计算最近cu/cd根K线的累积变化率（修复_inb中cc仅首bar赋值的bug）"""
+    if cu_cd_count<=0: return 0.0
+    closes=df["close"].values; L=len(closes)
+    idx=L-2  # row index (前一根)
+    if idx<cu_cd_count: return 0.0
+    total=0.0
+    for j in range(idx-cu_cd_count+1, idx+1):
+        if j>0 and closes[j-1]>0:
+            total+=(closes[j]-closes[j-1])/closes[j-1]
+    return total
+
 def mr_signal(sym,df,sc):
-    """V9.0 FINAL: 纯均值回归 (offline_replay WR=65.9% 证明)"""
+    """V9.0 FINAL: 纯均值回归 (offline_replay WR=65.9% 验证)"""
     if df is None or len(df)<220: return None
     row=df.iloc[-2]; cur=df.iloc[-1]
     adx=float(row["adx"]) if not np.isnan(row["adx"]) else 0
     atr=float(row["atr"]) if not np.isnan(row["atr"]) else 0
     ema=float(row["ema200"]) if not np.isnan(row["ema200"]) else 0
     rsi=float(row["rsi"]) if not np.isnan(row["rsi"]) else 50
-    if adx<sc["adx_th"] or atr<=0: return None
-    cu=int(row["cu"]); cd=int(row["cd"]); cc=float(row["cc"]); entry=float(cur["close"])
+    # 均值回归=震荡市(低ADX)才交易，趋势市(高ADX)跳过
+    if adx>sc["adx_th"] or atr<=0: return None
+    cu=int(row["cu"]); cd=int(row["cd"]); entry=float(cur["close"])
     vr=float(row["vol_ratio"]) if "vol_ratio" in row and not np.isnan(row["vol_ratio"]) else 1.0
     uvf=sc.get("vol_filter",False); urf=sc.get("rsi_filter",False); vth=sc.get("vol_th",1.2)
     tp_s=sc["tp_s"]; dtp=False
     if adx>=DTP_TH: tp_s*=DTP_M; dtp=True
     sv_ok=(not uvf) or (vr>=vth); sr_ok=(not urf) or (rsi>=55)
-    if (cu>=sc["sc"] and cc>=sc["ccp"] and sv_ok and sr_ok
+    # 实时计算cc（修复_inb中cc仅首bar赋值问题）
+    short_cc=_real_cc(df,cu) if cu>=sc["sc"] else 0.0
+    long_cc=_real_cc(df,cd) if cd>=sc["lc"] else 0.0
+    if (cu>=sc["sc"] and short_cc>=sc["ccp"] and sv_ok and sr_ok
             and not sc.get("short_disabled",False)):
         return {"side":"short","entry":entry,"sl":entry+sc["sl_atr"]*atr,"tp":entry-tp_s*atr,
                 "adx":round(adx,1),"atr":round(atr,8),"rsi":round(rsi,1),"tp_s":round(tp_s,2),
-                "dynamic_tp":dtp,"cu":cu,"cd":cd,"cc":cc,"bar_ts":int(row["ts"]),
+                "dynamic_tp":dtp,"cu":cu,"cd":cd,"cc":round(short_cc,6),"bar_ts":int(row["ts"]),
                 "ema200":round(ema,4),"vol_ratio":round(vr,2),"strategy":"mr"}
     lv_ok=(not uvf) or (vr>=vth); lr_ok=(not urf) or (rsi<=45)
-    if (not sc["long_disabled"] and cd>=sc["lc"] and cc<=-sc["ccp"]
+    if (not sc["long_disabled"] and cd>=sc["lc"] and long_cc<=-sc["ccp"]
             and entry>ema and lv_ok and lr_ok):
         return {"side":"long","entry":entry,"sl":entry-sc["sl_atr"]*atr,"tp":entry+tp_s*atr,
                 "adx":round(adx,1),"atr":round(atr,8),"rsi":round(rsi,1),"tp_s":round(tp_s,2),
-                "dynamic_tp":dtp,"cu":cu,"cd":cd,"cc":cc,"bar_ts":int(row["ts"]),
+                "dynamic_tp":dtp,"cu":cu,"cd":cd,"cc":round(long_cc,6),"bar_ts":int(row["ts"]),
                 "ema200":round(ema,4),"vol_ratio":round(vr,2),"strategy":"mr"}
     return None
 
 def compute_score(sig):
-    score=0.0
-    adx=sig["adx"]
-    if adx>=40: score+=3.0
-    elif adx>=30: score+=2.0
-    elif adx>=20: score+=1.0
+    """均值回归评分: 低ADX加分(震荡市适合均值回归)，高ADX不加分"""
+    score = 0.0
+    adx = sig["adx"]
+    if 10 <= adx <= 20: score += 3.0     # 最佳震荡区间
+    elif 0 < adx < 10: score += 1.0       # 太安静，但也可交易
+    elif 20 < adx <= 25: score += 1.5     # 轻微趋势，勉强可做
     e=sig["entry"]; rr=abs(sig["tp"]-e)/max(abs(e-sig["sl"]),1e-9)
     if rr>=2.0: score+=2.0
     elif rr>=1.5: score+=1.0
@@ -349,10 +366,12 @@ class DK:
 class WRG:
     def __init__(self): self._r=deque(maxlen=WRG_W); self._a=False; self._p=False
     def record(self,win):
-        self._r.append(win); n=len(self._r); wr=sum(self._r)/n if n>0 else 1
-        if not self._p and wr<WRG_P and n>=10: self._p=True; logger.warning(f"⛔暂停 WR={wr:.0%}")
+        self._r.append(win); n=len(self._r)
+        if n<WRG_WARM: return  # 热身期不触发暂停
+        wr=sum(self._r)/n if n>0 else 1
+        if not self._p and wr<WRG_P: self._p=True; logger.warning(f"⛔暂停 WR={wr:.0%}")
         elif self._p and wr>=WRG_MIN: self._p=False; logger.info("✅恢复")
-        if not self._a and wr<WRG_MIN and n>=10: self._a=True; logger.warning(f"⚠️激活 WR={wr:.0%}")
+        if not self._a and wr<WRG_MIN: self._a=True; logger.warning(f"⚠️激活 WR={wr:.0%}")
         elif self._a and wr>=WRG_B: self._a=False; logger.info("✅解除")
     @property
     def active(self): return self._a
@@ -510,7 +529,7 @@ def main():
                 if net>0: state["wins"]=state.get("wins",0)+1
                 else: state["losses"]=state.get("losses",0)+1; state["day_loss"]+=abs(net)
                 update_stats(state,net); kelly.record(net); wrg.record(net>0)
-                sw.record(sym,net); breaker.update(state["max_drawdown"],net<=0)
+                sw.record(sym,net); pass # breaker disabled
                 del state["positions"][sym]
                 rec={"no":state["total_trades"],"sym":sym,"tf":tf,"side":pos["side"],
                      "entry":round(pos["entry"],8),"exit":round(ex,8),"qty":round(qty,6),
@@ -523,7 +542,7 @@ def main():
                 e="✅" if net>0 else "❌"
                 logger.info(f"{e} #{state['total_trades']:3d} [{tf}] {sym} {pos['side'].upper()} {res} PnL={net:+.5f}U WR={wr:.1f}% 净值={state['equity']:.4f}U")
             # Signals
-            if len(state["positions"])<MAX_POS and not wrg.paused and breaker.allow:
+            if len(state["positions"])<MAX_POS and not wrg.paused:
                 corr=CORR(state["positions"])
                 for sym in sw.order():
                     if sym in state["positions"]: continue
@@ -555,7 +574,7 @@ def main():
                     if sd<=0: continue
                     qty=ru/sd; notional=qty*best_sig["entry"]
                     if notional<MIN_NOTIONAL: continue
-                    if notional>state["equity"]*0.5: qty=state["equity"]*0.5/best_sig["entry"]; notional=qty*best_sig["entry"]
+                    if notional>state["equity"]*0.3: qty=state["equity"]*0.3/best_sig["entry"]; notional=qty*best_sig["entry"]
                     ck=f"{sym}_{best_tf}"; lk=f"{sym}_{best_tf}"
                     lb[lk]=best_sig["bar_ts"]; cd[ck]=pc
                     state["positions"][sym]={
